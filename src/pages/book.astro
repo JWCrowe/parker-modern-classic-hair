@@ -1,0 +1,221 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Book Appointment | Parker Modern Classic Hair">
+  <nav style="position: fixed; top: 0; width: 100%; background: rgba(10,10,10,0.9); backdrop-filter: blur(10px); z-index: 100; padding: 1rem 0;">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+      <a href="/" style="font-size: 1.2rem; font-weight: 700; letter-spacing: 0.2em; color: inherit;">PARKER</a>
+      <div style="display: flex; gap: 2rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.1em;">
+        <a href="/">Home</a>
+        <a href="/#services">Services</a>
+        <a href="/#about">About</a>
+      </div>
+    </div>
+  </nav>
+
+  <section style="padding-top: 8rem; min-height: 100vh; background: #0a0a0a;">
+    <div class="container" style="max-width: 800px;">
+      <h1 style="font-size: 3.5rem; margin-bottom: 0.5rem; text-align: center;">Book Your Appointment</h1>
+      <p style="text-align: center; color: var(--muted); margin-bottom: 3rem;">Select a service, pick a time, and lock it in. Ben will confirm shortly.</p>
+
+      <div id="booking-app" style="background: #111; border-radius: 16px; padding: 2.5rem; border: 1px solid #222;">
+        <!-- Progress -->
+        <div id="progress" style="display: flex; justify-content: space-between; margin-bottom: 2rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);">
+          <span data-step="1" class="active">Service</span>
+          <span data-step="2">Date</span>
+          <span data-step="3">Time</span>
+          <span data-step="4">Details</span>
+          <span data-step="5">Done</span>
+        </div>
+
+        <!-- Step 1: Service -->
+        <div id="step-1" class="step">
+          <h2 style="margin-bottom: 1.5rem;">Choose a Service</h2>
+          <div id="services" style="display: grid; gap: 1rem;"></div>
+        </div>
+
+        <!-- Step 2: Date -->
+        <div id="step-2" class="step" style="display: none;">
+          <h2 style="margin-bottom: 1.5rem;">Select a Date</h2>
+          <div id="dates" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.75rem;"></div>
+        </div>
+
+        <!-- Step 3: Time -->
+        <div id="step-3" class="step" style="display: none;">
+          <h2 style="margin-bottom: 1.5rem;">Available Times</h2>
+          <div id="times" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.75rem;"></div>
+        </div>
+
+        <!-- Step 4: Details -->
+        <div id="step-4" class="step" style="display: none;">
+          <h2 style="margin-bottom: 1.5rem;">Your Details</h2>
+          <form id="details-form" style="display: grid; gap: 1rem;">
+            <input type="text" id="name" placeholder="Full Name" required style="padding: 1rem; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white; font-size: 1rem;" />
+            <input type="tel" id="phone" placeholder="Phone Number" required style="padding: 1rem; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white; font-size: 1rem;" />
+            <input type="email" id="email" placeholder="Email (optional)" style="padding: 1rem; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white; font-size: 1rem;" />
+            <textarea id="notes" placeholder="Notes for Ben (optional)" rows="3" style="padding: 1rem; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white; font-size: 1rem; resize: vertical;"></textarea>
+            <button type="submit" class="btn" style="margin-top: 0.5rem;">Confirm Booking</button>
+          </form>
+        </div>
+
+        <!-- Step 5: Confirmation -->
+        <div id="step-5" class="step" style="display: none; text-align: center;">
+          <div style="font-size: 4rem; margin-bottom: 1rem;">✅</div>
+          <h2 style="margin-bottom: 1rem;">You're Booked</h2>
+          <div id="confirmation" style="background: #1a1a1a; padding: 1.5rem; border-radius: 12px; margin: 1.5rem 0; text-align: left;"></div>
+          <p style="color: var(--muted); margin-bottom: 2rem;">Ben will reach out to confirm. See you in the chair.</p>
+          <a href="/" class="btn">Back to Home</a>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+          <button id="back-btn" style="background: transparent; border: 1px solid #333; color: white; padding: 0.75rem 1.5rem; border-radius: 999px; display: none;">Back</button>
+          <div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const services = [
+      { id: 'haircut', name: "Men's Haircut", duration: 45, price: '$35' },
+      { id: 'beard', name: 'Beard Trim', duration: 30, price: '$20' },
+      { id: 'shave', name: 'Hot Towel Shave', duration: 45, price: '$30' },
+      { id: 'head', name: 'Head Shave', duration: 30, price: '$25' },
+    ];
+
+    const hours = {
+      1: { open: 12, close: 19 }, // Mon
+      2: { open: 9, close: 17.5 }, // Tue
+      3: { open: 9, close: 17 }, // Wed
+      4: { open: 11, close: 18 }, // Thu
+      5: { open: 9, close: 17 }, // Fri
+    };
+
+    let state = { step: 1, service: null, date: null, time: null, details: {} };
+
+    function renderServices() {
+      const container = document.getElementById('services');
+      container.innerHTML = services.map(s => `
+        <button class="service-btn" data-id="${s.id}" style="text-align: left; padding: 1.25rem; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; color: white; cursor: pointer; transition: all 0.2s;">
+          <strong style="display: block; font-size: 1.1rem;">${s.name}</strong>
+          <span style="color: var(--muted); font-size: 0.9rem;">${s.duration} min · ${s.price}</span>
+        </button>
+      `).join('');
+      container.querySelectorAll('.service-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.service = services.find(s => s.id === btn.dataset.id);
+          nextStep();
+        });
+      });
+    }
+
+    function renderDates() {
+      const container = document.getElementById('dates');
+      const today = new Date();
+      const dates = [];
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        const day = d.getDay();
+        if (day === 0 || day === 6) continue; // closed weekends
+        dates.push(d);
+      }
+      container.innerHTML = dates.map(d => {
+        const key = d.toISOString().split('T')[0];
+        const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        return `<button class="date-btn" data-date="${key}" style="padding: 1rem; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; color: white; cursor: pointer;">${label}</button>`;
+      }).join('');
+      container.querySelectorAll('.date-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.date = btn.dataset.date;
+          nextStep();
+        });
+      });
+    }
+
+    function renderTimes() {
+      const container = document.getElementById('times');
+      const d = new Date(state.date);
+      const day = d.getDay();
+      const h = hours[day];
+      if (!h) return;
+      const slots = [];
+      let t = h.open;
+      while (t + (state.service.duration / 60) <= h.close) {
+        const hour = Math.floor(t);
+        const min = (t % 1) * 60;
+        const label = `${hour > 12 ? hour - 12 : hour}:${min.toString().padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
+        slots.push({ time: t, label });
+        t += 0.5;
+      }
+      container.innerHTML = slots.map(s => `
+        <button class="time-btn" data-time="${s.time}" style="padding: 0.9rem; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; color: white; cursor: pointer;">${s.label}</button>
+      `).join('');
+      container.querySelectorAll('.time-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.time = btn.dataset.time;
+          nextStep();
+        });
+      });
+    }
+
+    function showStep(n) {
+      document.querySelectorAll('.step').forEach(el => el.style.display = 'none');
+      document.getElementById(`step-${n}`).style.display = 'block';
+      document.querySelectorAll('#progress span').forEach(span => {
+        span.style.color = span.dataset.step == n ? 'var(--accent)' : 'var(--muted)';
+        span.style.fontWeight = span.dataset.step == n ? '700' : '400';
+      });
+      document.getElementById('back-btn').style.display = n > 1 && n < 5 ? 'block' : 'none';
+    }
+
+    function nextStep() {
+      state.step++;
+      if (state.step === 2) renderDates();
+      if (state.step === 3) renderTimes();
+      showStep(state.step);
+    }
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      if (state.step > 1) {
+        state.step--;
+        showStep(state.step);
+      }
+    });
+
+    document.getElementById('details-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      state.details = {
+        name: document.getElementById('name').value,
+        phone: document.getElementById('phone').value,
+        email: document.getElementById('email').value,
+        notes: document.getElementById('notes').value,
+      };
+      const conf = document.getElementById('confirmation');
+      const timeLabel = document.querySelector(`.time-btn[data-time="${state.time}"]`)?.textContent || state.time;
+      conf.innerHTML = `
+        <p><strong>Service:</strong> ${state.service.name}</p>
+        <p><strong>Date:</strong> ${new Date(state.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+        <p><strong>Time:</strong> ${timeLabel}</p>
+        <p><strong>Name:</strong> ${state.details.name}</p>
+        <p><strong>Phone:</strong> ${state.details.phone}</p>
+      `;
+      state.step = 5;
+      showStep(5);
+      // In production this would POST to an API / send email / save to DB
+      console.log('Booking submitted:', state);
+    });
+
+    renderServices();
+    showStep(1);
+  </script>
+
+  <style>
+    .service-btn:hover, .date-btn:hover, .time-btn:hover {
+      border-color: var(--accent) !important;
+      transform: translateY(-2px);
+    }
+    #progress .active { color: var(--accent); font-weight: 700; }
+  </style>
+</Layout>

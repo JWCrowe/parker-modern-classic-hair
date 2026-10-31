@@ -3,56 +3,51 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout>
-  <header style="position: fixed; inset: 0 0 auto 0; z-index: 50; background: rgba(7,7,7,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05);">
-    <div class="container" style="display: flex; align-items: center; justify-content: space-between; height: 88px;">
-      <a href="/" style="display: flex; align-items: center;">
-        <img src="/logo-white.png" alt="Parker" style="height: 58px; width: auto;" />
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <img src="/logo-white.png" alt="Parker" />
       </a>
-      <nav style="display: flex; gap: 2.5rem; font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase;">
+      <nav class="desktop-nav">
         <a href="#services">Services</a>
         <a href="#work">Work</a>
         <a href="#about">About</a>
         <a href="#reviews">Reviews</a>
       </nav>
-      <a href="/book" class="btn" style="padding: 0.7rem 1.5rem; font-size: 0.7rem;">Book</a>
+      <a href="/book" class="btn header-btn">Book</a>
     </div>
   </header>
 
   <!-- Hero -->
-  <section style="min-height: 100vh; display: flex; align-items: center; position: relative; overflow: hidden; padding-top: 88px;">
-    <div style="position: absolute; inset: 0; background: radial-gradient(ellipse at 75% 45%, rgba(201,162,39,0.07) 0%, transparent 55%), #070707;"></div>
-    <div class="container" style="position: relative; z-index: 2; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 5rem; align-items: center;">
-      <div>
-        <p style="color: var(--accent); letter-spacing: 0.3em; font-size: 0.72rem; text-transform: uppercase; margin-bottom: 1.5rem;">Calhoun, Georgia</p>
-        <h1 style="font-size: clamp(4.5rem, 8.5vw, 8rem); margin-bottom: 1.75rem; line-height: 0.92;">
-          Modern<br />Classic<br /><span style="color: var(--accent);">Hair</span>
-        </h1>
-        <p style="font-size: 1.2rem; max-width: 420px; color: #d4cfc6; margin-bottom: 2.75rem; line-height: 1.6;">
-          Precision fades. Sharp beard work. Quiet confidence in every cut. Ben’s chair in downtown Calhoun.
-        </p>
-        <div style="display: flex; gap: 1rem;">
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <p class="eyebrow">Calhoun, Georgia</p>
+        <h1>Modern<br />Classic<br /><span>Hair</span></h1>
+        <p class="hero-sub">Precision fades. Sharp beard work. Quiet confidence in every cut. Ben’s chair in downtown Calhoun.</p>
+        <div class="hero-actions">
           <a href="/book" class="btn">Book Your Cut</a>
           <a href="#work" class="btn btn-outline">See the Work</a>
         </div>
       </div>
-      <div style="aspect-ratio: 4/5; background: linear-gradient(160deg, #1a1a1a, #0d0d0d); border-radius: 18px; position: relative; overflow: hidden; border: 1px solid var(--border);">
-        <div style="position: absolute; inset: 0; background: url('https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=900&q=80') center/cover; opacity: 0.5; filter: grayscale(35%) contrast(1.15);"></div>
-        <div style="position: absolute; bottom: 1.75rem; left: 1.75rem; right: 1.75rem; background: rgba(7,7,7,0.75); backdrop-filter: blur(14px); padding: 1.1rem 1.4rem; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06);">
-          <p style="font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);">Now Booking</p>
-          <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; margin-top: 0.2rem;">Clean lines. Perfect fades.</p>
+      <div class="hero-visual">
+        <div class="hero-overlay">
+          <p class="eyebrow">Now Booking</p>
+          <p class="hero-overlay-title">Clean lines. Perfect fades.</p>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Services -->
-  <section id="services" style="background: var(--surface);">
+  <section id="services" class="services">
     <div class="container">
-      <div style="text-align: center; max-width: 520px; margin: 0 auto 4.5rem;">
-        <p style="color: var(--accent); letter-spacing: 0.24em; font-size: 0.72rem; text-transform: uppercase; margin-bottom: 0.75rem;">The Menu</p>
-        <h2 style="font-size: clamp(3rem, 5.5vw, 4.5rem);">Services</h2>
+      <div class="section-header">
+        <p class="eyebrow">The Menu</p>
+        <h2>Services</h2>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem;">
+      <div class="services-grid">
         {
           [
             { name: "Men’s Haircut", desc: "A precise, detailed, clipper haircut. Complimentary wash and style if requested.", time: "30 min", price: "$38" },
@@ -61,13 +56,13 @@ import Layout from '../layouts/Layout.astro';
             { name: "Kid's Haircut", desc: "A precise, detailed, clipper haircut. Complimentary wash and style if requested. Age 15 and under.", time: "30 min", price: "$35" },
             { name: "Women's Haircut", desc: "Wash, cut, and blow dry.", time: "1 hr", price: "$55" },
           ].map(s => (
-            <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 16px; padding: 1.85rem; transition: border-color 0.25s, transform 0.25s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.65rem;">
-                <p style="color: var(--accent); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;">{s.time}</p>
-                <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.75rem; color: var(--text);">{s.price}</p>
+            <div class="service-card">
+              <div class="service-meta">
+                <span class="eyebrow">{s.time}</span>
+                <span class="price">{s.price}</span>
               </div>
-              <h3 style="font-size: 1.65rem; margin-bottom: 0.65rem;">{s.name}</h3>
-              <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.55;">{s.desc}</p>
+              <h3>{s.name}</h3>
+              <p>{s.desc}</p>
             </div>
           ))
         }
@@ -76,58 +71,58 @@ import Layout from '../layouts/Layout.astro';
   </section>
 
   <!-- Work -->
-  <section id="work">
+  <section id="work" class="work">
     <div class="container">
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.75rem;">
+      <div class="work-header">
         <div>
-          <p style="color: var(--accent); letter-spacing: 0.24em; font-size: 0.72rem; text-transform: uppercase; margin-bottom: 0.5rem;">The Chair</p>
-          <h2 style="font-size: clamp(3rem, 5.5vw, 4.5rem);">Recent Work</h2>
+          <p class="eyebrow">The Chair</p>
+          <h2>Recent Work</h2>
         </div>
         <a href="/book" class="btn btn-outline">Book a Cut</a>
       </div>
-      <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; grid-template-rows: 300px 300px; gap: 0.85rem;">
-        <div style="grid-row: 1 / 3; background: url('https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=900&q=80') center/cover; border-radius: 16px;"></div>
-        <div style="background: url('https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=700&q=80') center/cover; border-radius: 16px;"></div>
-        <div style="background: url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=700&q=80') center/cover; border-radius: 16px;"></div>
-        <div style="background: url('https://images.unsplash.com/photo-1622287162716-f311baa1a2b8?auto=format&fit=crop&w=700&q=80') center/cover; border-radius: 16px;"></div>
-        <div style="background: url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=700&q=80') center/cover; border-radius: 16px;"></div>
+      <div class="gallery">
+        <div class="gallery-item large" style="background-image: url('https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=900&q=80')"></div>
+        <div class="gallery-item" style="background-image: url('https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=700&q=80')"></div>
+        <div class="gallery-item" style="background-image: url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=700&q=80')"></div>
+        <div class="gallery-item" style="background-image: url('https://images.unsplash.com/photo-1622287162716-f311baa1a2b8?auto=format&fit=crop&w=700&q=80')"></div>
+        <div class="gallery-item" style="background-image: url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=700&q=80')"></div>
       </div>
     </div>
   </section>
 
   <!-- About -->
-  <section id="about" style="background: var(--surface);">
-    <div class="container" style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 5rem; align-items: center;">
+  <section id="about" class="about">
+    <div class="container about-grid">
       <div>
-        <p style="color: var(--accent); letter-spacing: 0.24em; font-size: 0.72rem; text-transform: uppercase; margin-bottom: 0.75rem;">The Barber</p>
-        <h2 style="font-size: clamp(3rem, 5.5vw, 4.2rem); margin-bottom: 1.5rem;">Meet Ben</h2>
-        <p style="margin-bottom: 1.1rem; color: #d4cfc6; font-size: 1.05rem;">Parker Modern Classic Hair is Ben’s chair. He listens, then executes with precision. Clients come for the fade and stay for the consistency.</p>
-        <p style="margin-bottom: 1.5rem; color: #d4cfc6; font-size: 1.05rem;">Known for clean lines, patience (especially with kids), and making every client look and feel sharper than when they sat down.</p>
-        <p style="color: var(--muted);">Classic neighborhood shop. Modern standards.</p>
+        <p class="eyebrow">The Barber</p>
+        <h2>Meet Ben</h2>
+        <p>Parker Modern Classic Hair is Ben’s chair. He listens, then executes with precision. Clients come for the fade and stay for the consistency.</p>
+        <p>Known for clean lines, patience (especially with kids), and making every client look and feel sharper than when they sat down.</p>
+        <p class="muted">Classic neighborhood shop. Modern standards.</p>
       </div>
-      <div style="aspect-ratio: 1; border-radius: 18px; overflow: hidden; border: 1px solid var(--border);">
-        <img src="/ben-headshot.jpg" alt="Ben" style="width: 100%; height: 100%; object-fit: cover;" />
+      <div class="about-photo">
+        <img src="/ben-headshot.jpg" alt="Ben" />
       </div>
     </div>
   </section>
 
   <!-- Reviews -->
-  <section id="reviews">
+  <section id="reviews" class="reviews">
     <div class="container">
-      <div style="text-align: center; margin-bottom: 3.75rem;">
-        <p style="color: var(--accent); letter-spacing: 0.24em; font-size: 0.72rem; text-transform: uppercase; margin-bottom: 0.5rem;">5.0 · 28+ Reviews</p>
-        <h2 style="font-size: clamp(3rem, 5.5vw, 4.5rem);">What Clients Say</h2>
+      <div class="section-header">
+        <p class="eyebrow">5.0 · 28+ Reviews</p>
+        <h2>What Clients Say</h2>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+      <div class="reviews-grid">
         {
           [
             { quote: "Ben has been cutting my hair for over a year and I could not ask for a better barber. He understands the look and delivers.", name: "Jordan Stone" },
             { quote: "Took his time to listen and executed it exactly how I wanted. Efficient and detailed. 10/10.", name: "Kotaro Goto" },
             { quote: "Highly recommend Ben for any haircut or beard trim. Had me looking like a million dollars.", name: "Donnie Carter" },
           ].map(r => (
-            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem;">
-              <p style="font-size: 1.05rem; font-style: italic; margin-bottom: 1.35rem; color: #e8e2d8; line-height: 1.6;">"{r.quote}"</p>
-              <p style="color: var(--accent); font-size: 0.9rem;">— {r.name}</p>
+            <div class="review-card">
+              <p>"{r.quote}"</p>
+              <p class="review-name">— {r.name}</p>
             </div>
           ))
         }
@@ -135,38 +130,280 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </section>
 
-  <!-- CTA + Hours -->
-  <section style="background: var(--surface); padding-bottom: 8rem;">
-    <div class="container" style="text-align: center;">
-      <h2 style="font-size: clamp(3.2rem, 6vw, 4.8rem); margin-bottom: 1rem;">Ready for the Chair?</h2>
-      <p style="color: var(--muted); margin-bottom: 2.75rem; max-width: 460px; margin-left: auto; margin-right: auto; font-size: 1.05rem;">
-        Book online in under a minute. Walk-ins welcome when the chair is open.
-      </p>
-      <a href="/book" class="btn" style="font-size: 0.85rem; padding: 1.05rem 2.4rem;">Book Appointment</a>
-
-      <div style="margin: 4.5rem auto 0; max-width: 480px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 18px; padding: 2.25rem 2.5rem; text-align: left;">
-        <div style="display: grid; gap: 0.45rem; font-size: 1.02rem;">
-          <p><strong>Monday</strong> <span style="float: right; color: var(--muted);">12–7 PM</span></p>
-          <p><strong>Tuesday</strong> <span style="float: right; color: var(--muted);">9–5:30 PM</span></p>
-          <p><strong>Wednesday</strong> <span style="float: right; color: var(--muted);">9–5 PM</span></p>
-          <p><strong>Thursday</strong> <span style="float: right; color: var(--muted);">11–6 PM</span></p>
-          <p><strong>Friday</strong> <span style="float: right; color: var(--muted);">9–5 PM</span></p>
-          <p style="margin-top: 0.6rem; color: var(--muted);"><strong>Saturday & Sunday</strong> <span style="float: right;">Closed</span></p>
+  <!-- CTA -->
+  <section class="cta">
+    <div class="container">
+      <h2>Ready for the Chair?</h2>
+      <p class="cta-sub">Book online in under a minute. Walk-ins welcome when the chair is open.</p>
+      <a href="/book" class="btn">Book Appointment</a>
+      <div class="hours-card">
+        <div class="hours-list">
+          <p><strong>Monday</strong> <span>12–7 PM</span></p>
+          <p><strong>Tuesday</strong> <span>9–5:30 PM</span></p>
+          <p><strong>Wednesday</strong> <span>9–5 PM</span></p>
+          <p><strong>Thursday</strong> <span>11–6 PM</span></p>
+          <p><strong>Friday</strong> <span>9–5 PM</span></p>
+          <p class="closed"><strong>Saturday & Sunday</strong> <span>Closed</span></p>
         </div>
-        <div style="margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: 0.95rem; line-height: 1.7;">
+        <div class="contact-block">
           <p>111 S Wall St Ste B<br />Calhoun, GA 30701</p>
-          <p style="margin-top: 0.6rem;"><a href="tel:7064039150" style="color: var(--accent);">(706) 403-9150</a></p>
-          <p><a href="mailto:benjamin3241959@yahoo.com" style="color: var(--accent);">benjamin3241959@yahoo.com</a></p>
+          <p><a href="tel:7064039150">(706) 403-9150</a></p>
+          <p><a href="mailto:benjamin3241959@yahoo.com">benjamin3241959@yahoo.com</a></p>
         </div>
       </div>
     </div>
   </section>
 
-  <footer style="padding: 3.5rem 0; border-top: 1px solid var(--border); text-align: center; color: var(--muted); font-size: 0.9rem;">
+  <footer class="site-footer">
     <div class="container">
-      <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; color: var(--text); margin-bottom: 0.5rem;">Parker Modern Classic Hair</p>
+      <p class="footer-brand">Parker Modern Classic Hair</p>
       <p>111 S Wall St Ste B · Calhoun, Georgia</p>
-      <p style="margin-top: 0.65rem;"><a href="tel:7064039150">(706) 403-9150</a> · <a href="mailto:benjamin3241959@yahoo.com">benjamin3241959@yahoo.com</a></p>
+      <p><a href="tel:7064039150">(706) 403-9150</a> · <a href="mailto:benjamin3241959@yahoo.com">benjamin3241959@yahoo.com</a></p>
     </div>
   </footer>
 </Layout>
+
+<style>
+  .eyebrow {
+    color: var(--accent);
+    letter-spacing: 0.24em;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+  }
+  .muted { color: var(--muted); }
+
+  /* Header */
+  .site-header {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 50;
+    background: rgba(7,7,7,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 80px;
+  }
+  .logo img { height: 52px; width: auto; }
+  .desktop-nav {
+    display: flex;
+    gap: 2.25rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .header-btn { padding: 0.65rem 1.4rem; font-size: 0.7rem; }
+
+  /* Hero */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    padding-top: 80px;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 75% 45%, rgba(201,162,39,0.07) 0%, transparent 55%), #070707;
+  }
+  .hero-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 4rem;
+    align-items: center;
+  }
+  .hero h1 {
+    font-size: clamp(3.5rem, 7vw, 7.5rem);
+    margin: 0.75rem 0 1.5rem;
+    line-height: 0.92;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero-sub {
+    font-size: 1.15rem;
+    max-width: 420px;
+    color: #d4cfc6;
+    margin-bottom: 2.25rem;
+  }
+  .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .hero-visual {
+    aspect-ratio: 4/5;
+    border-radius: 18px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: url('https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=900&q=80') center/cover;
+  }
+  .hero-overlay {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    right: 1.5rem;
+    background: rgba(7,7,7,0.75);
+    backdrop-filter: blur(14px);
+    padding: 1rem 1.25rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .hero-overlay-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.45rem;
+    margin-top: 0.2rem;
+  }
+
+  /* Shared */
+  .section-header { text-align: center; max-width: 520px; margin: 0 auto 3.5rem; }
+  .section-header h2, .work-header h2, .about h2, .cta h2 {
+    font-size: clamp(2.6rem, 5vw, 4.2rem);
+    margin-top: 0.4rem;
+  }
+
+  /* Services */
+  .services { background: var(--surface); }
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+  .service-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.75rem;
+  }
+  .service-meta { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
+  .price { font-family: 'Cormorant Garamond', serif; font-size: 1.7rem; }
+  .service-card h3 { font-size: 1.6rem; margin-bottom: 0.5rem; }
+  .service-card p { color: var(--muted); font-size: 0.95rem; }
+
+  /* Work */
+  .work-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2.5rem;
+    gap: 1.5rem;
+  }
+  .gallery {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    grid-template-rows: 280px 280px;
+    gap: 0.85rem;
+  }
+  .gallery-item {
+    background-size: cover;
+    background-position: center;
+    border-radius: 16px;
+  }
+  .gallery-item.large { grid-row: 1 / 3; }
+
+  /* About */
+  .about { background: var(--surface); }
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 4rem;
+    align-items: center;
+  }
+  .about p { margin-bottom: 1rem; color: #d4cfc6; }
+  .about-photo {
+    aspect-ratio: 1;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .about-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Reviews */
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+  .review-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.75rem;
+  }
+  .review-card p { font-style: italic; margin-bottom: 1rem; color: #e8e2d8; }
+  .review-name { color: var(--accent) !important; font-style: normal !important; font-size: 0.9rem; }
+
+  /* CTA */
+  .cta { background: var(--surface); text-align: center; padding-bottom: 6rem; }
+  .cta-sub { color: var(--muted); margin: 0.75rem auto 2rem; max-width: 460px; }
+  .hours-card {
+    margin: 3.5rem auto 0;
+    max-width: 460px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1.75rem 2rem;
+    text-align: left;
+  }
+  .hours-list p {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+  }
+  .hours-list .closed { margin-top: 0.5rem; color: var(--muted); }
+  .contact-block {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    line-height: 1.7;
+  }
+
+  /* Footer */
+  .site-footer {
+    padding: 3rem 0;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .footer-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.45rem;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 900px) {
+    .desktop-nav { display: none; }
+    .logo img { height: 44px; }
+    .header-inner { height: 70px; }
+    .hero { min-height: auto; padding: 6.5rem 0 4rem; }
+    .hero-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+    .hero-visual { aspect-ratio: 16/10; max-height: 320px; }
+    .hero h1 { font-size: clamp(3.2rem, 12vw, 4.5rem); }
+    .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .about-photo { max-width: 420px; margin: 0 auto; }
+    .work-header { flex-direction: column; align-items: flex-start; }
+    .gallery {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto;
+    }
+    .gallery-item { aspect-ratio: 1; }
+    .gallery-item.large { grid-row: auto; grid-column: 1 / -1; aspect-ratio: 16/9; }
+    .services-grid, .reviews-grid { grid-template-columns: 1fr; }
+    .section-header h2, .work-header h2, .about h2, .cta h2 {
+      font-size: clamp(2.4rem, 8vw, 3.2rem);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-actions { flex-direction: column; }
+    .hero-actions .btn { width: 100%; }
+    .gallery { grid-template-columns: 1fr; }
+    .gallery-item.large { aspect-ratio: 4/3; }
+    .hours-card { padding: 1.5rem; }
+  }
+</style>

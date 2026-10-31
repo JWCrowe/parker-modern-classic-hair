@@ -5,7 +5,9 @@ import Layout from '../layouts/Layout.astro';
 <Layout>
   <header style="position: fixed; inset: 0 0 auto 0; z-index: 50; background: rgba(7,7,7,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05);">
     <div class="container" style="display: flex; align-items: center; justify-content: space-between; height: 72px;">
-      <a href="/" style="font-family: 'Cormorant Garamond', serif; font-size: 1.55rem; font-weight: 600; letter-spacing: 0.2em; color: var(--text);">PARKER</a>
+      <a href="/" style="display: flex; align-items: center;">
+        <img src="/logo-white.png" alt="Parker" style="height: 32px; width: auto;" />
+      </a>
       <nav style="display: flex; gap: 2.5rem; font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase;">
         <a href="#services">Services</a>
         <a href="#work">Work</a>
@@ -103,7 +105,9 @@ import Layout from '../layouts/Layout.astro';
         <p style="margin-bottom: 1.5rem; color: #d4cfc6; font-size: 1.05rem;">Known for clean lines, patience (especially with kids), and making every client look and feel sharper than when they sat down.</p>
         <p style="color: var(--muted);">Classic neighborhood shop. Modern standards.</p>
       </div>
-      <div style="aspect-ratio: 1; background: var(--surface-2); border-radius: 18px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); font-size: 5.5rem;">✂️</div>
+      <div style="aspect-ratio: 1; border-radius: 18px; overflow: hidden; border: 1px solid var(--border);">
+        <img src="/ben-headshot.jpg" alt="Ben" style="width: 100%; height: 100%; object-fit: cover;" />
+      </div>
     </div>
   </section>
 

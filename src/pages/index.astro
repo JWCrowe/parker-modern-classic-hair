@@ -50,17 +50,21 @@ import Layout from '../layouts/Layout.astro';
         <p style="color: var(--accent); letter-spacing: 0.22em; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.75rem;">The Menu</p>
         <h2 style="font-size: clamp(2.8rem, 5vw, 4.2rem);">Services</h2>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
         {
           [
-            { name: "Men’s Haircut", desc: "Clean fades, textured crops, and classic shapes tailored to your hair and face.", time: "45 min" },
-            { name: "Beard Trim", desc: "Sharp lines and refined shape. Hot towel finish available.", time: "30 min" },
-            { name: "Hot Towel Shave", desc: "Traditional straight-razor service. Smooth, precise, classic.", time: "45 min" },
-            { name: "Head Shave", desc: "Even, clean, and professional. The bold look done right.", time: "30 min" },
+            { name: "Men’s Haircut", desc: "A precise, detailed, clipper haircut. Complimentary wash and style if requested.", time: "30 min", price: "$38" },
+            { name: "Beard", desc: "Groom, straight razor, and detail beard.", time: "30 min", price: "$25" },
+            { name: "Men’s Haircut & Beard", desc: "Combine services.", time: "1 hr", price: "$55" },
+            { name: "Kid's Haircut", desc: "A precise, detailed, clipper haircut. Complimentary wash and style if requested. Age 15 and under.", time: "30 min", price: "$35" },
+            { name: "Women's Haircut", desc: "Wash, cut, and blow dry.", time: "1 hr", price: "$55" },
           ].map(s => (
             <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 2rem; transition: border-color 0.25s, transform 0.25s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-              <p style="color: var(--accent); font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 0.75rem;">{s.time}</p>
-              <h3 style="font-size: 1.8rem; margin-bottom: 0.75rem;">{s.name}</h3>
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
+                <p style="color: var(--accent); font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase;">{s.time}</p>
+                <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: var(--text);">{s.price}</p>
+              </div>
+              <h3 style="font-size: 1.7rem; margin-bottom: 0.75rem;">{s.name}</h3>
               <p style="color: var(--muted); font-size: 0.95rem;">{s.desc}</p>
             </div>
           ))
@@ -140,7 +144,9 @@ import Layout from '../layouts/Layout.astro';
         <p><strong>Thu</strong> 11–6 PM</p>
         <p><strong>Fri</strong> 9–5 PM</p>
         <p style="margin-top: 0.75rem; color: var(--muted);">Sat & Sun Closed</p>
-        <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--muted);">111 S Wall St Suite B, Calhoun, GA 30701</p>
+        <p style="margin-top: 1.25rem; font-size: 0.95rem;">111 S Wall St Ste B<br />Calhoun, GA 30701</p>
+        <p style="margin-top: 0.75rem;"><a href="tel:7064039150" style="color: var(--accent);">(706) 403-9150</a></p>
+        <p><a href="mailto:benjamin3241959@yahoo.com" style="color: var(--accent);">benjamin3241959@yahoo.com</a></p>
       </div>
     </div>
   </section>
@@ -148,7 +154,8 @@ import Layout from '../layouts/Layout.astro';
   <footer style="padding: 3rem 0; border-top: 1px solid var(--border); text-align: center; color: var(--muted); font-size: 0.9rem;">
     <div class="container">
       <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; color: var(--text); margin-bottom: 0.5rem;">Parker Modern Classic Hair</p>
-      <p>Calhoun, Georgia</p>
+      <p>111 S Wall St Ste B · Calhoun, Georgia</p>
+      <p style="margin-top: 0.5rem;"><a href="tel:7064039150">(706) 403-9150</a> · <a href="mailto:benjamin3241959@yahoo.com">benjamin3241959@yahoo.com</a></p>
     </div>
   </footer>
 </Layout>

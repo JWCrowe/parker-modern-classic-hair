@@ -1,212 +1,546 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { business, hoursDisplay } from '../data/site';
+const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
 ---
 
-<Layout title="Book Appointment | Parker Modern Classic Hair">
-  <header style="position: fixed; inset: 0 0 auto 0; z-index: 50; background: rgba(7,7,7,0.75); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.04);">
-    <div class="container" style="display: flex; align-items: center; justify-content: space-between; height: 72px;">
-      <a href="/" style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 600; letter-spacing: 0.18em; color: var(--text);">PARKER</a>
-      <a href="/" style="font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase;">Home</a>
-    </div>
-  </header>
+<Layout
+  title="Book Appointment | Parker Modern Classic Hair, Calhoun GA"
+  description="Book a haircut, beard, or combo with Ben at Parker Modern Classic Hair in Calhoun, Georgia. Pick a service, date, and time in under a minute."
+>
+  <Header />
 
-  <section style="padding-top: 7rem; min-height: 100vh;">
-    <div class="container" style="max-width: 720px;">
-      <div style="text-align: center; margin-bottom: 2.5rem;">
-        <p style="color: var(--accent); letter-spacing: 0.22em; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">The Chair</p>
-        <h1 style="font-size: clamp(2.8rem, 5vw, 4rem);">Book Your Appointment</h1>
-        <p style="color: var(--muted); margin-top: 0.75rem;">Select a service, choose a time, and lock it in.</p>
+  <main class="book">
+    <div class="book-bg" aria-hidden="true"></div>
+    <div class="wrap">
+      <header class="book-head">
+        <p class="kicker mask"><span>Book Online · Ben's Chair</span></p>
+        <h1 class="display book-title">
+          <span class="mask" style="--d:.05s"><span>Take a</span></span>
+          <span class="mask" style="--d:.15s"><span class="serif-i">seat.</span></span>
+        </h1>
+        <p class="lede" data-reveal style="--d:.3s">Pick a service, choose a time, lock it in. Under a minute.</p>
+      </header>
+
+      <div class="book-grid">
+        <div id="booking-app" class="panel" data-reveal style="--d:.35s">
+          <!-- Progress -->
+          <div class="progress" aria-label="Booking progress">
+            <div class="progress-bar"><span id="progress-fill"></span></div>
+            <ol id="progress">
+              {steps.map((s, i) => (
+                <li data-step={i + 1}>
+                  <button type="button" class="pstep" data-go={i + 1} disabled>
+                    <span class="pnum"><b>{String(i + 1).padStart(2, '0')}</b></span>
+                    <span class="plabel">{s}</span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div id="step-1" class="step" data-title="Choose a service">
+            <h2 class="step-title display">Choose a <span class="serif-i brass">service</span></h2>
+            <div id="services" class="svc-grid" role="list"></div>
+          </div>
+
+          <div id="step-2" class="step" hidden>
+            <h2 class="step-title display">Select a <span class="serif-i brass">date</span></h2>
+            <div id="dates" class="date-grid"></div>
+          </div>
+
+          <div id="step-3" class="step" hidden>
+            <h2 class="step-title display">Available <span class="serif-i brass">times</span></h2>
+            <p id="time-context" class="step-sub"></p>
+            <div id="times"></div>
+          </div>
+
+          <div id="step-4" class="step" hidden>
+            <h2 class="step-title display">Your <span class="serif-i brass">details</span></h2>
+            <form id="details-form" class="form" novalidate>
+              <label class="field">
+                <span>Full name</span>
+                <input type="text" id="name" name="name" autocomplete="name" required placeholder="First and last" />
+              </label>
+              <label class="field">
+                <span>Phone number</span>
+                <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" required placeholder="(706) 555-0123" />
+              </label>
+              <label class="field">
+                <span>Email <em>optional</em></span>
+                <input type="email" id="email" name="email" autocomplete="email" placeholder="you@email.com" />
+              </label>
+              <label class="field">
+                <span>Notes for Ben <em>optional</em></span>
+                <textarea id="notes" name="notes" rows="3" placeholder="Fade height, beard shape, anything he should know"></textarea>
+              </label>
+              <p id="form-error" class="form-error" role="alert" hidden></p>
+              <button type="submit" class="btn btn-block">Confirm Booking <span class="arrow">→</span></button>
+            </form>
+          </div>
+
+          <div id="step-5" class="step done" hidden>
+            <div class="stamp" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+            </div>
+            <h2 class="step-title display">You're <span class="serif-i brass">on deck.</span></h2>
+            <p class="step-sub">Your request is saved. Ben confirms every appointment personally, so send it his way below and he'll lock it in.</p>
+            <div id="confirmation" class="stub"></div>
+            <div class="done-actions">
+              <a id="send-sms" class="btn btn-block" href="#">Text Ben My Request <span class="arrow">→</span></a>
+              <a id="send-email" class="btn btn-ghost btn-block" href="#">Email Instead</a>
+              <a href={business.phoneHref} class="btn btn-ghost btn-block">Call {business.phone}</a>
+            </div>
+            <a href="/" class="back-home">← Back to home</a>
+          </div>
+
+          <div class="panel-foot">
+            <button id="back-btn" type="button" class="btn btn-ghost btn-sm" hidden>← Back</button>
+          </div>
+        </div>
+
+        <!-- Summary ticket -->
+        <aside class="summary" data-reveal="right" style="--d:.45s" aria-live="polite">
+          <div class="ticket frame">
+            <div class="ticket-head">
+              <img src="/logo-cream.png" alt="" width="502" height="251" />
+            </div>
+            <dl class="ticket-lines">
+              <div><dt>Service</dt><dd id="sum-service">Not selected</dd></div>
+              <div><dt>Date</dt><dd id="sum-date">Not selected</dd></div>
+              <div><dt>Time</dt><dd id="sum-time">Not selected</dd></div>
+              <div><dt>Duration</dt><dd id="sum-duration">--</dd></div>
+            </dl>
+            <div class="ticket-total">
+              <span>Total</span>
+              <strong id="sum-price" class="display">$0</strong>
+            </div>
+            <div class="ticket-perf" aria-hidden="true"></div>
+            <div class="ticket-info">
+              <p class="kicker plain">Hours</p>
+              <ul>
+                {hoursDisplay.map((h) => (
+                  <li class={h.label === 'Closed' ? 'closed' : ''}><span>{h.short}</span><span>{h.label}</span></li>
+                ))}
+              </ul>
+              <a href={business.mapsHref} target="_blank" rel="noopener" class="ticket-addr">{business.street}, {business.city}, {business.region} {business.zip} ↗</a>
+              <a href={business.phoneHref} class="ticket-addr">{business.phone}</a>
+            </div>
+          </div>
+        </aside>
       </div>
-
-      <div id="booking-app" style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem;">
-        <div id="progress" style="display: flex; justify-content: space-between; margin-bottom: 2rem; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);">
-          <span data-step="1">Service</span>
-          <span data-step="2">Date</span>
-          <span data-step="3">Time</span>
-          <span data-step="4">Details</span>
-          <span data-step="5">Done</span>
-        </div>
-
-        <div id="step-1" class="step">
-          <h2 style="font-size: 1.8rem; margin-bottom: 1.25rem;">Choose a Service</h2>
-          <div id="services" style="display: grid; gap: 0.75rem;"></div>
-        </div>
-
-        <div id="step-2" class="step" style="display: none;">
-          <h2 style="font-size: 1.8rem; margin-bottom: 1.25rem;">Select a Date</h2>
-          <div id="dates" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.6rem;"></div>
-        </div>
-
-        <div id="step-3" class="step" style="display: none;">
-          <h2 style="font-size: 1.8rem; margin-bottom: 1.25rem;">Available Times</h2>
-          <div id="times" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.6rem;"></div>
-        </div>
-
-        <div id="step-4" class="step" style="display: none;">
-          <h2 style="font-size: 1.8rem; margin-bottom: 1.25rem;">Your Details</h2>
-          <form id="details-form" style="display: grid; gap: 0.85rem;">
-            <input type="text" id="name" placeholder="Full Name" required style="padding: 0.95rem 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 1rem;" />
-            <input type="tel" id="phone" placeholder="Phone Number" required style="padding: 0.95rem 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 1rem;" />
-            <input type="email" id="email" placeholder="Email (optional)" style="padding: 0.95rem 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 1rem;" />
-            <textarea id="notes" placeholder="Notes for Ben (optional)" rows="3" style="padding: 0.95rem 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 1rem; resize: vertical;"></textarea>
-            <button type="submit" class="btn" style="margin-top: 0.5rem;">Confirm Booking</button>
-          </form>
-        </div>
-
-        <div id="step-5" class="step" style="display: none; text-align: center;">
-          <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">✅</div>
-          <h2 style="font-size: 2.2rem; margin-bottom: 0.75rem;">You're Booked</h2>
-          <div id="confirmation" style="background: var(--surface-2); padding: 1.5rem; border-radius: 12px; margin: 1.5rem 0; text-align: left; border: 1px solid var(--border);"></div>
-          <p style="color: var(--muted); margin-bottom: 1.75rem;">Ben will reach out to confirm. See you in the chair.</p>
-          <a href="/" class="btn">Back to Home</a>
-        </div>
-
-        <div style="margin-top: 1.75rem;">
-          <button id="back-btn" class="btn btn-outline" style="display: none; padding: 0.7rem 1.4rem;">Back</button>
-        </div>
-      </div>
     </div>
-  </section>
+  </main>
 
-  <script>
-    const services = [
-      { id: 'mens', name: "Men’s Haircut", duration: 30, price: '$38' },
-      { id: 'beard', name: 'Beard', duration: 30, price: '$25' },
-      { id: 'combo', name: "Men’s Haircut & Beard", duration: 60, price: '$55' },
-      { id: 'kids', name: "Kid's Haircut", duration: 30, price: '$35' },
-      { id: 'womens', name: "Women's Haircut", duration: 60, price: '$55' },
-    ];
+  <Footer />
+</Layout>
 
-    const hours = {
-      1: { open: 12, close: 19 },
-      2: { open: 9, close: 17.5 },
-      3: { open: 9, close: 17 },
-      4: { open: 11, close: 18 },
-      5: { open: 9, close: 17 },
-    };
+<script>
+  import { services, hours, business } from '../data/site';
+  import type { Service } from '../data/site';
 
-    let state = { step: 1, service: null, date: null, time: null, details: {} };
+  type State = { step: number; maxStep: number; service: Service | null; date: string | null; time: number | null; details: Record<string, string> };
+
+  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  // Local date key (avoids the UTC off-by-one from toISOString / new Date('YYYY-MM-DD')).
+  const keyOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parseKey = (k: string) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+  const fmtTime = (t: number) => {
+    const h = Math.floor(t);
+    const m = Math.round((t % 1) * 60);
+    const hh = h % 12 === 0 ? 12 : h % 12;
+    return `${hh}:${pad(m)} ${h >= 12 ? 'PM' : 'AM'}`;
+  };
+  const fmtDur = (m: number) => (m >= 60 ? `${m / 60} hr` : `${m} min`);
+  const longDate = (k: string) => parseKey(k).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  function init() {
+    const app = document.getElementById('booking-app');
+    if (!app) return;
+
+    const state: State = { step: 1, maxStep: 1, service: null, date: null, time: null, details: {} };
+    const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+
+    function slotsFor(dateKey: string, svc: Service) {
+      const d = parseKey(dateKey);
+      const h = hours[d.getDay()];
+      if (!h) return [];
+      const now = new Date();
+      const isToday = keyOf(now) === dateKey;
+      const nowT = now.getHours() + now.getMinutes() / 60;
+      const out: number[] = [];
+      for (let t = h.open; t + svc.duration / 60 <= h.close; t += 0.5) {
+        if (isToday && t <= nowT + 0.25) continue;
+        out.push(t);
+      }
+      return out;
+    }
+
+    function updateSummary() {
+      $('sum-service').textContent = state.service ? state.service.name : 'Not selected';
+      $('sum-date').textContent = state.date ? parseKey(state.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'Not selected';
+      $('sum-time').textContent = state.time != null ? fmtTime(state.time) : 'Not selected';
+      $('sum-duration').textContent = state.service ? fmtDur(state.service.duration) : '--';
+      $('sum-price').textContent = state.service ? state.service.price : '$0';
+      document.querySelectorAll('.ticket-lines dd').forEach((dd) => dd.classList.toggle('set', dd.textContent !== 'Not selected' && dd.textContent !== '--'));
+    }
 
     function renderServices() {
-      const container = document.getElementById('services');
-      container.innerHTML = services.map(s => `
-        <button class="service-btn" data-id="${s.id}" style="text-align: left; padding: 1.15rem 1.25rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; color: var(--text); cursor: pointer; transition: all 0.2s;">
-          <strong style="display: block; font-size: 1.05rem;">${s.name}</strong>
-          <span style="color: var(--muted); font-size: 0.85rem;">${s.duration} min · ${s.price}</span>
-        </button>
-      `).join('');
-      container.querySelectorAll('.service-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          state.service = services.find(s => s.id === btn.dataset.id);
-          nextStep();
-        });
-      });
+      const c = $('services');
+      c.innerHTML = services
+        .map(
+          (s, i) => `
+        <button type="button" class="opt svc-opt${state.service?.id === s.id ? ' is-sel' : ''}" data-id="${s.id}" role="listitem">
+          <span class="opt-num">${pad(i + 1)}</span>
+          <span class="opt-body">
+            <span class="opt-name">${esc(s.name)}</span>
+            <span class="opt-desc">${esc(s.desc)}</span>
+          </span>
+          <span class="opt-meta">
+            <span class="opt-price">${s.price}</span>
+            <span class="opt-time">${s.time}</span>
+          </span>
+        </button>`
+        )
+        .join('');
+      c.querySelectorAll<HTMLButtonElement>('.svc-opt').forEach((b) =>
+        b.addEventListener('click', () => {
+          const next = services.find((s) => s.id === b.dataset.id)!;
+          if (state.service?.id !== next.id) { state.time = null; state.maxStep = 2; }
+          state.service = next;
+          go(2);
+        })
+      );
     }
 
     function renderDates() {
-      const container = document.getElementById('dates');
+      const c = $('dates');
       const today = new Date();
-      const dates = [];
+      const list: Date[] = [];
       for (let i = 0; i < 14; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
+        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
         const day = d.getDay();
         if (day === 0 || day === 6) continue;
-        dates.push(d);
+        if (state.service && slotsFor(keyOf(d), state.service).length === 0) continue; // e.g. today after close
+        list.push(d);
       }
-      container.innerHTML = dates.map(d => {
-        const key = d.toISOString().split('T')[0];
-        const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        return `<button class="date-btn" data-date="${key}" style="padding: 0.9rem 0.5rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); cursor: pointer;">${label}</button>`;
-      }).join('');
-      container.querySelectorAll('.date-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          state.date = btn.dataset.date;
-          nextStep();
-        });
-      });
+      c.innerHTML = list
+        .map((d, i) => {
+          const k = keyOf(d);
+          const isToday = k === keyOf(today);
+          return `<button type="button" class="opt date-opt${state.date === k ? ' is-sel' : ''}" data-date="${k}" style="--i:${i}">
+            <span class="d-wk">${isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+            <span class="d-num">${d.getDate()}</span>
+            <span class="d-mo">${d.toLocaleDateString('en-US', { month: 'short' })}</span>
+          </button>`;
+        })
+        .join('');
+      c.querySelectorAll<HTMLButtonElement>('.date-opt').forEach((b) =>
+        b.addEventListener('click', () => {
+          if (state.date !== b.dataset.date) { state.time = null; state.maxStep = 3; }
+          state.date = b.dataset.date!;
+          go(3);
+        })
+      );
     }
 
     function renderTimes() {
-      const container = document.getElementById('times');
-      const d = new Date(state.date);
-      const day = d.getDay();
-      const h = hours[day];
-      if (!h) return;
-      const slots = [];
-      let t = h.open;
-      while (t + (state.service.duration / 60) <= h.close) {
-        const hour = Math.floor(t);
-        const min = (t % 1) * 60;
-        const label = `${hour > 12 ? hour - 12 : hour}:${min.toString().padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
-        slots.push({ time: t, label });
-        t += 0.5;
-      }
-      container.innerHTML = slots.map(s => `
-        <button class="time-btn" data-time="${s.time}" style="padding: 0.85rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); cursor: pointer;">${s.label}</button>
-      `).join('');
-      container.querySelectorAll('.time-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          state.time = btn.dataset.time;
-          nextStep();
-        });
+      const c = $('times');
+      if (!state.date || !state.service) return;
+      const slots = slotsFor(state.date, state.service);
+      $('time-context').textContent = `${longDate(state.date)} · ${state.service.name} · ${fmtDur(state.service.duration)}`;
+      const groups = [
+        { label: 'Morning', items: slots.filter((t) => t < 12) },
+        { label: 'Afternoon', items: slots.filter((t) => t >= 12 && t < 17) },
+        { label: 'Evening', items: slots.filter((t) => t >= 17) },
+      ].filter((g) => g.items.length);
+      c.innerHTML = groups.length
+        ? groups
+            .map(
+              (g) => `<div class="time-group"><p class="tg-label">${g.label}</p><div class="time-grid">${g.items
+                .map((t) => `<button type="button" class="opt time-opt${state.time === t ? ' is-sel' : ''}" data-time="${t}">${fmtTime(t)}</button>`)
+                .join('')}</div></div>`
+            )
+            .join('')
+        : `<p class="step-sub">No open times left on this day. Pick another date.</p>`;
+      c.querySelectorAll<HTMLButtonElement>('.time-opt').forEach((b) =>
+        b.addEventListener('click', () => {
+          state.time = Number(b.dataset.time);
+          go(4);
+        })
+      );
+    }
+
+    function showStep(n: number) {
+      document.querySelectorAll<HTMLElement>('#booking-app .step').forEach((el) => (el.hidden = true));
+      const cur = $(`step-${n}`);
+      cur.hidden = false;
+      cur.classList.remove('enter');
+      void cur.offsetWidth;
+      cur.classList.add('enter');
+      $('progress-fill').style.width = `${((n - 1) / 4) * 100}%`;
+      document.querySelectorAll<HTMLLIElement>('#progress li').forEach((li) => {
+        const s = Number(li.dataset.step);
+        li.classList.toggle('is-cur', s === n);
+        li.classList.toggle('is-done', s < n || (s <= state.maxStep && s !== n && n < 5));
+        const btn = li.querySelector('button')!;
+        btn.disabled = n === 5 || s > state.maxStep || s === n || s === 5;
+        if (s === n) btn.setAttribute('aria-current', 'step'); else btn.removeAttribute('aria-current');
       });
+      $('back-btn').hidden = !(n > 1 && n < 5);
+      updateSummary();
     }
 
-    function showStep(n) {
-      document.querySelectorAll('.step').forEach(el => el.style.display = 'none');
-      document.getElementById(`step-${n}`).style.display = 'block';
-      document.querySelectorAll('#progress span').forEach(span => {
-        span.style.color = span.dataset.step == n ? 'var(--accent)' : 'var(--muted)';
-        span.style.fontWeight = span.dataset.step == n ? '600' : '400';
-      });
-      document.getElementById('back-btn').style.display = n > 1 && n < 5 ? 'inline-flex' : 'none';
+    function go(n: number) {
+      state.step = n;
+      state.maxStep = Math.max(state.maxStep, n);
+      if (n === 1) renderServices();
+      if (n === 2) renderDates();
+      if (n === 3) renderTimes();
+      showStep(n);
+      const top = app!.getBoundingClientRect().top + window.scrollY - 90;
+      if (window.scrollY > top) window.scrollTo({ top, behavior: 'smooth' });
     }
 
-    function nextStep() {
-      state.step++;
-      if (state.step === 2) renderDates();
-      if (state.step === 3) renderTimes();
-      showStep(state.step);
-    }
+    $('back-btn').addEventListener('click', () => { if (state.step > 1) go(state.step - 1); });
+    document.querySelectorAll<HTMLButtonElement>('.pstep').forEach((b) =>
+      b.addEventListener('click', () => { const n = Number(b.dataset.go); if (n <= state.maxStep) go(n); })
+    );
 
-    document.getElementById('back-btn').addEventListener('click', () => {
-      if (state.step > 1) {
-        state.step--;
-        showStep(state.step);
-      }
-    });
-
-    document.getElementById('details-form').addEventListener('submit', (e) => {
+    $<HTMLFormElement>('details-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      state.details = {
-        name: document.getElementById('name').value,
-        phone: document.getElementById('phone').value,
-        email: document.getElementById('email').value,
-        notes: document.getElementById('notes').value,
-      };
-      const conf = document.getElementById('confirmation');
-      const timeLabel = document.querySelector(`.time-btn[data-time="${state.time}"]`)?.textContent || state.time;
-      conf.innerHTML = `
-        <p><strong>Service:</strong> ${state.service.name}</p>
-        <p><strong>Date:</strong> ${new Date(state.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-        <p><strong>Time:</strong> ${timeLabel}</p>
-        <p><strong>Name:</strong> ${state.details.name}</p>
-        <p><strong>Phone:</strong> ${state.details.phone}</p>
-      `;
-      state.step = 5;
-      showStep(5);
-      console.log('Booking submitted:', state);
+      const name = $<HTMLInputElement>('name').value.trim();
+      const phone = $<HTMLInputElement>('phone').value.trim();
+      const email = $<HTMLInputElement>('email').value.trim();
+      const notes = $<HTMLTextAreaElement>('notes').value.trim();
+      const err = $('form-error');
+      const digits = phone.replace(/\D/g, '');
+      let msg = '';
+      if (!name) msg = 'Add your name so Ben knows who is coming in.';
+      else if (digits.length < 10) msg = 'Add a phone number Ben can reach you at.';
+      else if (email && !/^\S+@\S+\.\S+$/.test(email)) msg = 'That email does not look right.';
+      document.querySelectorAll('.field').forEach((f) => f.classList.remove('bad'));
+      if (msg) {
+        err.textContent = msg;
+        err.hidden = false;
+        (!name ? $('name') : digits.length < 10 ? $('phone') : $('email')).closest('.field')!.classList.add('bad');
+        return;
+      }
+      err.hidden = true;
+      state.details = { name, phone, email, notes };
+
+      const svc = state.service!;
+      const when = `${longDate(state.date!)} at ${fmtTime(state.time!)}`;
+      $('confirmation').innerHTML = `
+        <div class="stub-row"><span>Service</span><strong>${esc(svc.name)}</strong></div>
+        <div class="stub-row"><span>When</span><strong>${esc(when)}</strong></div>
+        <div class="stub-row"><span>Length</span><strong>${fmtDur(svc.duration)}</strong></div>
+        <div class="stub-row"><span>Name</span><strong>${esc(name)}</strong></div>
+        <div class="stub-row"><span>Phone</span><strong>${esc(phone)}</strong></div>
+        <div class="stub-row total"><span>Total</span><strong>${svc.price}</strong></div>`;
+
+      const text = `Hi Ben, I'd like to book a ${svc.name} (${svc.price}) on ${when}. Name: ${name}. Phone: ${phone}.${notes ? ' Notes: ' + notes : ''}`;
+      $<HTMLAnchorElement>('send-sms').href = `${business.smsHref}?&body=${encodeURIComponent(text)}`;
+      $<HTMLAnchorElement>('send-email').href = `mailto:${business.email}?subject=${encodeURIComponent('Booking request: ' + svc.name + ', ' + when)}&body=${encodeURIComponent(text + (email ? '\nEmail: ' + email : ''))}`;
+
+      const record = { service: svc, date: state.date, time: fmtTime(state.time!), details: state.details, createdAt: new Date().toISOString() };
+      try {
+        const prev = JSON.parse(localStorage.getItem('parker-bookings') || '[]');
+        localStorage.setItem('parker-bookings', JSON.stringify([...prev, record]));
+      } catch {}
+      console.log('Booking submitted:', record);
+      go(5);
     });
 
-    renderServices();
-    showStep(1);
-  </script>
-
-  <style>
-    .service-btn:hover, .date-btn:hover, .time-btn:hover {
-      border-color: var(--accent) !important;
-      transform: translateY(-2px);
+    // Deep link: /book?service=mens
+    const pre = new URLSearchParams(location.search).get('service');
+    const found = services.find((s) => s.id === pre);
+    if (found) {
+      state.service = found;
+      go(2);
+    } else {
+      renderServices();
+      showStep(1);
     }
-  </style>
-</Layout>
+  }
+
+  document.addEventListener('astro:page-load', init);
+</script>
+
+<style>
+  .book { position: relative; padding: calc(var(--header-h) + clamp(2.5rem, 6vw, 5rem)) 0 clamp(4rem, 8vw, 7rem); min-height: 100vh; isolation: isolate; overflow: hidden; }
+  .book-bg {
+    position: absolute; inset: 0; z-index: -1;
+    background:
+      radial-gradient(ellipse at 90% 0%, rgba(201, 162, 90, 0.16), transparent 45%),
+      radial-gradient(ellipse at 0% 100%, rgba(201, 162, 90, 0.07), transparent 50%),
+      repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), rgba(239, 230, 210, 0.035) calc(25% - 1px) 25%);
+  }
+  .book-head { margin-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .book-title { font-size: clamp(4rem, 12vw, 10rem); line-height: 0.86; margin: 1.1rem 0 1.4rem; }
+  .book-title .serif-i { color: var(--brass); padding-left: 0.25em; }
+
+  .book-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: clamp(1.5rem, 3vw, 2.5rem); align-items: start; }
+
+  .panel { background: rgba(18, 17, 16, 0.85); border: 1px solid var(--line-2); padding: clamp(1.25rem, 3.5vw, 2.75rem); position: relative; }
+  .panel::before { content: ''; position: absolute; inset: 6px; border: 1px solid var(--line); pointer-events: none; }
+
+  /* Progress */
+  .progress { margin-bottom: clamp(2rem, 4vw, 3rem); position: relative; }
+  .progress-bar { position: absolute; left: 0; right: 0; top: 17px; height: 1px; background: var(--line); }
+  .progress-bar span { position: absolute; left: 0; top: -1px; height: 3px; width: 0; background: linear-gradient(90deg, var(--brass-lo), var(--brass), var(--brass-hi)); box-shadow: 0 0 14px rgba(201, 162, 90, 0.6); transition: width 0.6s var(--ease); }
+  #progress { list-style: none; display: flex; justify-content: space-between; position: relative; }
+  .pstep { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 0.55rem; cursor: pointer; padding: 0; }
+  .pstep:disabled { cursor: default; }
+  .pnum {
+    width: 36px; height: 36px;
+    display: grid; place-items: center;
+    background: var(--ink);
+    border: 1px solid var(--line-2);
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; color: var(--mute);
+    transform: rotate(45deg);
+    transition: background 0.35s, color 0.35s, border-color 0.35s, box-shadow 0.35s;
+  }
+  .pnum b { display: block; transform: rotate(-45deg); font-weight: 700; }
+  .plabel { font-size: 0.64rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mute); transition: color 0.3s; }
+  .is-cur .pnum { background: var(--brass); border-color: var(--brass); color: var(--ink); box-shadow: 0 0 0 5px rgba(201, 162, 90, 0.15); }
+  .is-cur .plabel { color: var(--cream); }
+  .is-done .pnum { border-color: var(--brass); color: var(--brass); }
+  .is-done .plabel { color: var(--cream-2); }
+  .is-done .pstep:not(:disabled):hover .pnum { background: rgba(201, 162, 90, 0.15); }
+
+  .step-title { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 0.95; margin-bottom: 1.5rem; }
+  .step-sub { color: var(--mute); margin: -0.75rem 0 1.5rem; font-size: 0.95rem; }
+  .step.enter { animation: stepIn 0.55s var(--ease) both; }
+  @keyframes stepIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  /* Options (rendered by JS → global) */
+  .panel :global(.opt) {
+    background: var(--ink);
+    border: 1px solid var(--line);
+    color: var(--cream);
+    cursor: pointer;
+    text-align: left;
+    position: relative;
+    transition: border-color 0.25s, background 0.25s, transform 0.3s var(--ease);
+  }
+  .panel :global(.opt:hover) { border-color: var(--brass); background: var(--char-2); transform: translateY(-2px); }
+  .panel :global(.opt.is-sel) { border-color: var(--brass); background: rgba(201, 162, 90, 0.1); }
+
+  .svc-grid { display: grid; gap: 0.7rem; }
+  .panel :global(.svc-opt) { display: grid; grid-template-columns: 2.2rem 1fr auto; gap: 1rem; align-items: center; padding: 1.15rem 1.25rem; }
+  .panel :global(.svc-opt::before) { content: ''; position: absolute; left: -1px; top: -1px; bottom: -1px; width: 3px; background: var(--brass); transform: scaleY(0); transition: transform 0.3s var(--ease); }
+  .panel :global(.svc-opt:hover::before), .panel :global(.svc-opt.is-sel::before) { transform: scaleY(1); }
+  .panel :global(.opt-num) { font-size: 0.7rem; letter-spacing: 0.2em; color: var(--brass); }
+  .panel :global(.opt-body) { display: grid; gap: 0.25rem; min-width: 0; }
+  .panel :global(.opt-name) { font-family: var(--display); font-size: clamp(1.3rem, 2.4vw, 1.75rem); text-transform: uppercase; line-height: 1.05; }
+  .panel :global(.opt-desc) { font-size: 0.84rem; color: var(--mute); line-height: 1.45; }
+  .panel :global(.opt-meta) { display: grid; justify-items: end; gap: 0.3rem; }
+  .panel :global(.opt-price) { font-family: var(--display); font-size: clamp(1.8rem, 3vw, 2.4rem); line-height: 1; color: var(--brass); }
+  .panel :global(.opt-time) { font-size: 0.64rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream-2); border: 1px solid var(--line); padding: 0.25rem 0.5rem; white-space: nowrap; }
+
+  .date-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 0.6rem; }
+  .panel :global(.date-opt) { display: grid; justify-items: center; gap: 0.15rem; padding: 1rem 0.5rem; text-align: center; animation: stepIn 0.5s var(--ease) both; animation-delay: calc(var(--i) * 0.03s); }
+  .panel :global(.d-wk) { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--brass); }
+  .panel :global(.d-num) { font-family: var(--display); font-size: 2.4rem; line-height: 1; }
+  .panel :global(.d-mo) { font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mute); }
+
+  .panel :global(.time-group + .time-group) { margin-top: 1.5rem; }
+  .panel :global(.tg-label) { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: var(--mute); margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.8rem; }
+  .panel :global(.tg-label::after) { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .panel :global(.time-grid) { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 0.55rem; }
+  .panel :global(.time-opt) { padding: 0.9rem 0.5rem; text-align: center; font-weight: 600; font-size: 0.95rem; letter-spacing: 0.04em; }
+
+  /* Form */
+  .form { display: grid; gap: 1rem; }
+  .field { display: grid; gap: 0.45rem; }
+  .field > span { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--cream-2); }
+  .field em { font-style: normal; color: var(--mute); letter-spacing: 0.1em; margin-left: 0.4rem; }
+  .field input, .field textarea {
+    width: 100%;
+    padding: 1rem 1.05rem;
+    background: var(--ink);
+    border: 1px solid var(--line);
+    border-bottom-color: var(--line-2);
+    color: var(--cream);
+    font: inherit;
+    font-size: 1rem;
+    border-radius: 0;
+    transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field textarea { resize: vertical; min-height: 96px; }
+  .field input::placeholder, .field textarea::placeholder { color: #5f584d; }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--brass); background: var(--char-2); box-shadow: 0 0 0 3px rgba(201, 162, 90, 0.15); }
+  .field.bad input { border-color: #c46a4f; }
+  .form-error { color: #e79a80; font-size: 0.9rem; }
+  .form .btn { margin-top: 0.5rem; min-height: 58px; }
+
+  /* Done */
+  .done { text-align: center; }
+  .stamp { width: 76px; height: 76px; margin: 0 auto 1.4rem; display: grid; place-items: center; border: 1px solid var(--brass); color: var(--brass); transform: rotate(45deg); animation: stamp 0.6s var(--ease) both; }
+  .stamp svg { width: 34px; height: 34px; transform: rotate(-45deg); }
+  @keyframes stamp { from { opacity: 0; transform: rotate(45deg) scale(1.6); } to { opacity: 1; transform: rotate(45deg) scale(1); } }
+  .done .step-sub { margin: 0 auto 1.75rem; max-width: 30rem; }
+  .stub { text-align: left; background: var(--ink); border: 1px dashed var(--line-2); padding: 0.5rem 1.4rem; margin-bottom: 1.75rem; }
+  .stub :global(.stub-row) { display: flex; justify-content: space-between; gap: 1rem; padding: 0.8rem 0; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+  .stub :global(.stub-row:last-child) { border-bottom: 0; }
+  .stub :global(.stub-row span) { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--mute); padding-top: 0.2rem; }
+  .stub :global(.stub-row strong) { text-align: right; font-weight: 600; }
+  .stub :global(.stub-row.total strong) { font-family: var(--display); font-weight: 400; font-size: 1.8rem; color: var(--brass); line-height: 1; }
+  .done-actions { display: grid; gap: 0.7rem; }
+  .back-home { display: inline-block; margin-top: 1.5rem; font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mute); transition: color 0.2s; }
+  .back-home:hover { color: var(--brass); }
+  .panel-foot { margin-top: 1.75rem; }
+  .panel-foot:has(#back-btn[hidden]) { display: none; }
+
+  /* Summary ticket */
+  .summary { position: sticky; top: calc(64px + 1.5rem); }
+  .ticket { background: var(--ink); border: 1px solid var(--line-2); padding: 1.6rem; }
+  .ticket-head { padding-bottom: 1.2rem; border-bottom: 3px double var(--line-2); display: flex; justify-content: center; }
+  .ticket-head img { width: 150px; height: auto; }
+  .ticket-lines { display: grid; margin: 0.6rem 0; }
+  .ticket-lines div { display: flex; justify-content: space-between; gap: 1rem; padding: 0.7rem 0; border-bottom: 1px solid var(--line); }
+  .ticket-lines dt { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--mute); padding-top: 0.15rem; }
+  .ticket-lines dd { text-align: right; font-size: 0.92rem; color: var(--mute); transition: color 0.3s; }
+  .ticket-lines dd.set { color: var(--cream); font-weight: 600; }
+  .ticket-total { display: flex; justify-content: space-between; align-items: baseline; padding: 0.8rem 0 0.4rem; }
+  .ticket-total span { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase; color: var(--cream-2); }
+  .ticket-total strong { font-size: 2.8rem; line-height: 1; color: var(--brass); font-weight: 400; }
+  .ticket-perf { position: relative; height: 1px; border-top: 2px dashed var(--line-2); margin: 1.2rem -1.6rem; }
+  .ticket-perf::before, .ticket-perf::after { content: ''; position: absolute; top: -12px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); border: 1px solid var(--line-2); }
+  .ticket-perf::before { left: -12px; clip-path: inset(0 0 0 50%); }
+  .ticket-perf::after { right: -12px; clip-path: inset(0 50% 0 0); }
+  .ticket-info ul { list-style: none; margin: 0.8rem 0 1rem; display: grid; gap: 0.3rem; }
+  .ticket-info li { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--cream-2); }
+  .ticket-info li.closed { color: var(--mute); }
+  .ticket-addr { display: block; font-size: 0.82rem; color: var(--brass); margin-top: 0.4rem; transition: color 0.2s; }
+  .ticket-addr:hover { color: var(--brass-hi); }
+
+  @media (max-width: 960px) {
+    .book-grid { grid-template-columns: 1fr; }
+    .summary { position: static; order: -1; }
+    .ticket { padding: 1.1rem 1.25rem; }
+    .ticket-head, .ticket-perf, .ticket-info { display: none; }
+    .ticket-lines { grid-template-columns: repeat(4, 1fr); margin: 0; gap: 0.75rem; }
+    .ticket-lines div { flex-direction: column; gap: 0.25rem; border: 0; padding: 0; }
+    .ticket-lines dd { text-align: left; font-size: 0.85rem; }
+    .ticket-total { border-top: 1px solid var(--line); margin-top: 0.9rem; padding-bottom: 0; }
+    .ticket-total strong { font-size: 2rem; }
+  }
+  @media (max-width: 600px) {
+    .ticket-lines { grid-template-columns: 1fr 1fr; }
+    .plabel { font-size: 0.55rem; letter-spacing: 0.12em; }
+    .pnum { width: 30px; height: 30px; }
+    .progress-bar { top: 14px; }
+    .panel :global(.svc-opt) { grid-template-columns: 1fr auto; padding: 1rem; }
+    .panel :global(.opt-num) { display: none; }
+    .date-grid { grid-template-columns: repeat(3, 1fr); }
+    .panel :global(.time-grid) { grid-template-columns: repeat(3, 1fr); }
+    .panel :global(.time-opt) { font-size: 0.85rem; padding: 0.85rem 0.25rem; }
+  }
+</style>

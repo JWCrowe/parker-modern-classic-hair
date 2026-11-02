@@ -1,89 +1,133 @@
 ---
-import { ViewTransitions } from 'astro:transitions';
+import { ClientRouter } from 'astro:transitions';
+import '../styles/global.css';
+import { business } from '../data/site';
 
-const { title = "Parker Modern Classic Hair | Calhoun, GA", description = "Precision cuts, sharp fades, and classic grooming by Ben in Calhoun, Georgia." } = Astro.props;
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+}
+
+const {
+  title = 'Parker Modern Classic Hair | Barber in Calhoun, GA',
+  description = 'Precision fades, straight razor beard work, and classic cuts by Ben at Parker Modern Classic Hair, 111 S Wall St, Calhoun, Georgia. 5.0 rated. Book online.',
+  image = '/og.jpg',
+} = Astro.props;
+
+const site = Astro.site ?? new URL('https://parkermodernclassichair.com');
+const canonical = new URL(Astro.url.pathname, site).toString();
+const ogImage = new URL(image, site).toString();
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'HairSalon',
+  name: business.name,
+  image: ogImage,
+  url: site.toString(),
+  telephone: '+1-706-403-9150',
+  email: business.email,
+  priceRange: '$$',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: business.street,
+    addressLocality: business.city,
+    addressRegion: business.region,
+    postalCode: business.zip,
+    addressCountry: 'US',
+  },
+  openingHoursSpecification: [
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Monday', opens: '12:00', closes: '19:00' },
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Tuesday', opens: '09:00', closes: '17:30' },
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Wednesday', opens: '09:00', closes: '17:00' },
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Thursday', opens: '11:00', closes: '18:00' },
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Friday', opens: '09:00', closes: '17:00' },
+  ],
+};
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#0a0908" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
-    <title>{title}</title>
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={business.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-    <ViewTransitions />
-    <style is:global>
-      :root {
-        --bg: #070707;
-        --surface: #111111;
-        --surface-2: #1a1a1a;
-        --text: #f4f1ea;
-        --muted: #8a847a;
-        --accent: #c9a227;
-        --accent-soft: rgba(201, 162, 39, 0.12);
-        --border: #262626;
-      }
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      html { scroll-behavior: smooth; }
-      body {
-        font-family: 'Inter', system-ui, sans-serif;
-        background: var(--bg);
-        color: var(--text);
-        line-height: 1.65;
-        -webkit-font-smoothing: antialiased;
-      }
-      h1, h2, h3, h4 {
-        font-family: 'Cormorant Garamond', Georgia, serif;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        line-height: 1.05;
-      }
-      a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
-      a:hover { color: #e0c15a; }
-      .container { max-width: 1140px; margin: 0 auto; padding: 0 1.5rem; }
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--accent);
-        color: #0a0a0a;
-        padding: 0.95rem 2.2rem;
-        border-radius: 999px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        border: none;
-        cursor: pointer;
-        transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s;
-      }
-      .btn:hover {
-        background: #d4b03a;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(201, 162, 39, 0.25);
-      }
-      .btn-outline {
-        background: transparent;
-        color: var(--text);
-        border: 1px solid var(--border);
-      }
-      .btn-outline:hover {
-        border-color: var(--accent);
-        color: var(--accent);
-        background: var(--accent-soft);
-      }
-      section { padding: 7rem 0; }
-      @media (max-width: 768px) {
-        section { padding: 5rem 0; }
-      }
-    </style>
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    <script is:inline>
+      document.documentElement.classList.add('js');
+      document.addEventListener('astro:after-swap', function () {
+        document.documentElement.classList.add('js');
+      });
+    </script>
+    <ClientRouter />
   </head>
   <body>
+    <div class="grain" aria-hidden="true" transition:persist="grain"></div>
     <slot />
+
+    <script>
+      // Global light JS: scroll reveals, header state. Re-runs on every client-side navigation.
+      let io: IntersectionObserver | null = null;
+
+      function initReveals() {
+        io?.disconnect();
+        const els = document.querySelectorAll<HTMLElement>('[data-reveal], .mask');
+        if (!('IntersectionObserver' in window)) {
+          els.forEach((el) => el.classList.add('is-in'));
+          return;
+        }
+        io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((e) => {
+              if (e.isIntersecting) {
+                e.target.classList.add('is-in');
+                io?.unobserve(e.target);
+              }
+            });
+          },
+          { rootMargin: '0px 0px -8% 0px', threshold: 0.12 }
+        );
+        els.forEach((el) => io!.observe(el));
+      }
+
+      function onScroll() {
+        const y = window.scrollY;
+        document.querySelector('.site-header')?.classList.toggle('is-scrolled', y > 24);
+        const sticky = document.querySelector('.sticky-book');
+        if (sticky) sticky.classList.toggle('is-on', y > window.innerHeight * 0.55);
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      document.addEventListener('astro:page-load', () => {
+        initReveals();
+        onScroll();
+      });
+    </script>
   </body>
 </html>

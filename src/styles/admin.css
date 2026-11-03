@@ -1,6 +1,6 @@
 /* Admin panel. Same ink / brass / cream system as the public site, denser and calmer. */
 .admin-body { min-height: 100vh; background: var(--ink); background-image: radial-gradient(ellipse at 100% 0%, rgba(201, 162, 90, 0.08), transparent 45%); }
-.admin-shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; width: 100%; max-width: 100%; overflow-x: clip; }
+.admin-shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 100vh; width: 100%; max-width: 100%; overflow-x: clip; align-content: start; }
 .admin-side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 1.5rem; padding: 1.5rem 1.1rem; border-right: 1px solid var(--line); background: rgba(18, 17, 16, 0.9); }
 .admin-side .brand img { width: 132px; height: auto; }
 .admin-side .who { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mute); }
@@ -67,7 +67,8 @@ a.link:hover { color: var(--brass-hi); }
 .check input { width: 18px; height: 18px; accent-color: var(--brass); }
 .err { color: #e79a80; font-size: 0.88rem; }
 .ok { color: #a9d3a2; font-size: 0.88rem; }
-.empty { color: var(--mute); padding: 1.25rem 0; font-size: 0.95rem; }
+.empty { color: var(--mute); padding: 0.35rem 0; font-size: 0.95rem; }
+.card:has(> .empty:only-child) { padding-block: 0.85rem; }
 
 .tabs { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); width: max-content; max-width: min(100%, 100vw); overflow-x: auto; }
 .tabs a { padding: 0.55rem 0.85rem; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-2); border-right: 1px solid var(--line); }
@@ -91,6 +92,7 @@ a.link:hover { color: var(--brass-hi); }
 .toast.on { transform: translateX(-50%) translateY(0); }
 .toast.bad { border-color: #c46a4f; color: #f2b29d; }
 
+dialog.dlg:not([open]) { display: none; }
 dialog.dlg { margin: auto; width: min(560px, calc(100vw - 1.5rem)); max-height: calc(100vh - 2rem); background: var(--char); color: var(--cream); border: 1px solid var(--line-2); padding: 0; }
 dialog.dlg::backdrop { background: rgba(5, 4, 3, 0.72); backdrop-filter: blur(3px); }
 .dlg-in { padding: 1.4rem; display: grid; gap: 1rem; }
@@ -106,16 +108,24 @@ dl.kv dt { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.22em; text-tr
 .mobile-bar { display: none; }
 
 @media (max-width: 900px) {
-  .admin-shell { grid-template-columns: 1fr; overflow-x: clip; }
+  .admin-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    align-content: start;
+    align-items: stretch;
+    overflow-x: clip;
+  }
   .admin-side {
-    position: sticky; top: 0; z-index: 50; height: auto;
+    position: sticky; top: 0; z-index: 50;
+    height: auto; max-height: none; min-height: 0;
     display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center; gap: 0.35rem; padding: 0.5rem 0.55rem;
+    align-items: center; align-content: center; gap: 0.35rem;
+    padding: 0.5rem 0.55rem;
     width: 100%; max-width: 100%; overflow: hidden;
     border-right: 0; border-bottom: 1px solid var(--line);
   }
   .admin-side .brand { flex-shrink: 0; }
-  .admin-side .brand img { width: 56px; }
+  .admin-side .brand img { width: 56px; height: auto; max-height: 28px; }
   .admin-side .who, .admin-side .side-foot a { display: none; }
   .admin-nav {
     display: flex; gap: 0; min-width: 0; width: 100%; max-width: 100%;

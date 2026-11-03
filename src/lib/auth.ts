@@ -25,7 +25,9 @@ export async function createSession(cookies: AstroCookies, admin: Admin, secure:
   cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', secure, path: '/', maxAge: MAX_AGE });
 }
 
-export function clearSession(cookies: AstroCookies) {
+export function clearSession(cookies: AstroCookies, secure = true) {
+  // Match the attributes used in createSession so browsers actually drop the Secure cookie.
+  cookies.set(SESSION_COOKIE, '', { httpOnly: true, sameSite: 'lax', secure, path: '/', maxAge: 0, expires: new Date(0) });
   cookies.delete(SESSION_COOKIE, { path: '/' });
 }
 

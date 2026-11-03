@@ -50,5 +50,32 @@ export function wireActions(root: ParentNode = document) {
   });
 }
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => wireActions());
-else wireActions();
+
+
+export function wireSignOut(root: ParentNode = document) {
+  root.querySelectorAll<HTMLButtonElement>('[data-sign-out]').forEach((b) => {
+    if (b.dataset.wired) return;
+    b.dataset.wired = '1';
+    b.addEventListener('click', async () => {
+      b.disabled = true;
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', accept: 'application/json' },
+          credentials: 'same-origin',
+          body: '{}',
+        });
+      } catch {
+        // still send them to login
+      }
+      location.href = '/admin/login';
+    });
+  });
+}
+
+function boot() {
+  wireActions();
+  wireSignOut();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();

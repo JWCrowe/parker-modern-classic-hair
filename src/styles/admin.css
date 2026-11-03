@@ -5,7 +5,7 @@
 .admin-side .brand img { width: 132px; height: auto; }
 .admin-side .who { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mute); }
 .admin-nav { display: grid; gap: 0.15rem; }
-.admin-nav a { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.7rem 0.8rem; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream-2); border-left: 2px solid transparent; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+.admin-nav a { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.7rem 0.8rem; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-2); border-left: 2px solid transparent; transition: background 0.2s, color 0.2s, border-color 0.2s; }
 .admin-nav a:hover { background: var(--char-2); color: var(--cream); }
 .admin-nav a.is-cur { border-left-color: var(--brass); background: rgba(201, 162, 90, 0.08); color: var(--brass-hi); }
 .badge { display: inline-grid; place-items: center; min-width: 1.5rem; height: 1.5rem; padding: 0 0.4rem; font-size: 0.68rem; letter-spacing: 0; background: var(--brass); color: var(--ink); font-weight: 700; }
@@ -68,7 +68,7 @@ a.link:hover { color: var(--brass-hi); }
 .empty { color: var(--mute); padding: 1.25rem 0; font-size: 0.95rem; }
 
 .tabs { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); width: max-content; max-width: 100%; }
-.tabs a { padding: 0.55rem 0.9rem; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream-2); border-right: 1px solid var(--line); }
+.tabs a { padding: 0.55rem 0.85rem; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-2); border-right: 1px solid var(--line); }
 .tabs a:last-child { border-right: 0; }
 .tabs a.is-cur { background: var(--brass); color: var(--ink); }
 
@@ -105,13 +105,35 @@ dl.kv dt { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.22em; text-tr
 
 @media (max-width: 900px) {
   .admin-shell { grid-template-columns: 1fr; }
-  .admin-side { position: sticky; top: 0; z-index: 50; height: auto; flex-direction: row; align-items: center; gap: 0.75rem; padding: 0.6rem 0.9rem; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
-  .admin-side .brand img { width: 84px; }
+  .admin-side {
+    position: sticky; top: 0; z-index: 50; height: auto;
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center; gap: 0.45rem; padding: 0.55rem 0.7rem;
+    overflow: visible; border-right: 0; border-bottom: 1px solid var(--line);
+  }
+  .admin-side .brand img { width: 72px; }
   .admin-side .who, .admin-side .side-foot a { display: none; }
-  .admin-nav { display: flex; gap: 0; }
-  .admin-nav a { padding: 0.55rem 0.6rem; font-size: 0.62rem; letter-spacing: 0.12em; border-left: 0; border-bottom: 2px solid transparent; white-space: nowrap; }
-  .admin-nav a.is-cur { border-bottom-color: var(--brass); }
-  .admin-side .side-foot { margin: 0 0 0 auto; }
+  .admin-nav {
+    display: flex; gap: 0; min-width: 0; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .admin-nav::-webkit-scrollbar { display: none; }
+  .admin-nav a {
+    flex: 0 0 auto; padding: 0.5rem 0.42rem; font-size: 0.58rem;
+    letter-spacing: 0.06em; border-left: 0; border-bottom: 2px solid transparent;
+    white-space: nowrap; justify-content: center;
+  }
+  .admin-nav a.is-cur { border-bottom-color: var(--brass); background: transparent; }
+  .admin-side .side-foot { margin: 0; display: block; flex-shrink: 0; }
+  .admin-side .side-foot button {
+    letter-spacing: 0.06em; white-space: nowrap; padding: 0.45rem 0.35rem; font-size: 0.58rem;
+  }
+  .tabs {
+    display: flex; flex-wrap: nowrap; width: 100%; max-width: 100%;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs a { flex: 0 0 auto; padding: 0.5rem 0.7rem; letter-spacing: 0.1em; font-size: 0.6rem; }
   .grid-2 { grid-template-columns: 1fr; }
   .item { grid-template-columns: 1fr; }
   .item-actions { justify-content: start; }

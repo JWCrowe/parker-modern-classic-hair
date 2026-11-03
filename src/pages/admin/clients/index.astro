@@ -20,7 +20,7 @@ const totals = clients.reduce((t, c) => ({ visits: t.visits + c.visit_count, yea
       <p class="admin-sub">Visits and value count completed appointments only. Year value is {year} so far.</p>
     </div>
     <form class="row" method="get">
-      <label class="f" style="min-width:220px"><input name="q" value={q} placeholder="Search name, phone, email" aria-label="Search clients" /></label>
+      <label class="f" style="flex:1 1 12rem; min-width:0"><input name="q" value={q} placeholder="Search name, phone, email" aria-label="Search clients" /></label>
       <button class="btn btn-sm btn-ghost" type="submit">Search</button>
     </form>
   </div>

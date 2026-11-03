@@ -13,12 +13,12 @@ if (admin && !bare) {
   } catch {}
 }
 const nav = [
-  { href: '/admin', key: 'dash', label: 'Dashboard' },
-  { href: '/admin/calendar', key: 'calendar', label: 'Calendar' },
-  { href: '/admin/inquiries', key: 'inquiries', label: 'Inquiries', badge: inquiries },
-  { href: '/admin/appointments', key: 'appointments', label: 'Appointments' },
-  { href: '/admin/clients', key: 'clients', label: 'Clients' },
-  { href: '/admin/settings', key: 'settings', label: 'Settings' },
+  { href: '/admin', key: 'dash', label: 'Dashboard', short: 'Home' },
+  { href: '/admin/calendar', key: 'calendar', label: 'Calendar', short: 'Cal' },
+  { href: '/admin/inquiries', key: 'inquiries', label: 'Inquiries', short: 'Inbox', badge: inquiries },
+  { href: '/admin/appointments', key: 'appointments', label: 'Appointments', short: 'Appts' },
+  { href: '/admin/clients', key: 'clients', label: 'Clients', short: 'Clients' },
+  { href: '/admin/settings', key: 'settings', label: 'Settings', short: 'Setup' },
 ];
 ---
 
@@ -46,7 +46,8 @@ const nav = [
           <nav class="admin-nav" aria-label="Admin">
             {nav.map((n) => (
               <a href={n.href} class={active === n.key ? 'is-cur' : ''}>
-                {n.label}
+                <span class="nav-full">{n.label}</span>
+                <span class="nav-short">{n.short}</span>
                 {n.badge ? <span class="badge">{n.badge}</span> : null}
               </a>
             ))}

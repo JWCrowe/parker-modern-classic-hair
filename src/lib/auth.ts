@@ -26,9 +26,15 @@ export async function createSession(cookies: AstroCookies, admin: Admin, secure:
 }
 
 export function clearSession(cookies: AstroCookies, secure = true) {
-  // Match the attributes used in createSession so browsers actually drop the Secure cookie.
-  cookies.set(SESSION_COOKIE, '', { httpOnly: true, sameSite: 'lax', secure, path: '/', maxAge: 0, expires: new Date(0) });
-  cookies.delete(SESSION_COOKIE, { path: '/' });
+  // Must mirror createSession attrs (Secure + SameSite + Path) or browsers keep the old cookie.
+  cookies.set(SESSION_COOKIE, '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure,
+    path: '/',
+    maxAge: 0,
+    expires: new Date(0),
+  });
 }
 
 export async function readSession(cookies: AstroCookies): Promise<Admin | null> {

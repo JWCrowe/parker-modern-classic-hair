@@ -3,8 +3,19 @@ import { requireEnv } from './env';
 
 let _sql: NeonQueryFunction<false, false> | null = null;
 
+/** Neon serverless driver does not need channel_binding; strip it if present. */
+export function normalizeDatabaseUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    u.searchParams.delete('channel_binding');
+    return u.toString();
+  } catch {
+    return raw.replace(/([?&])channel_binding=[^&]*&?/g, '$1').replace(/[?&]$/, '');
+  }
+}
+
 export function sql() {
-  if (!_sql) _sql = neon(requireEnv('DATABASE_URL'));
+  if (!_sql) _sql = neon(normalizeDatabaseUrl(requireEnv('DATABASE_URL')));
   return _sql;
 }
 

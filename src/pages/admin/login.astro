@@ -1,0 +1,50 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { readSession } from '../../lib/auth';
+const next = Astro.url.searchParams.get('next') || '/admin';
+const safeNext = next.startsWith('/admin') ? next : '/admin';
+if (await readSession(Astro.cookies).catch(() => null)) return Astro.redirect(safeNext);
+---
+
+<AdminLayout title="Sign in" bare>
+  <main class="login">
+    <form id="login" class="card login-card" data-next={safeNext}>
+      <img src="/logo-cream.png" alt="Parker Modern Classic Hair" width="502" height="251" />
+      <p class="kicker plain">Ben's chair · Admin</p>
+      <h1 class="admin-title">Sign <span class="serif-i">in</span></h1>
+      <label class="f"><span>Email</span><input name="email" type="email" autocomplete="username" required /></label>
+      <label class="f"><span>Password</span><input name="password" type="password" autocomplete="current-password" required /></label>
+      <p class="err" id="login-err" role="alert" hidden></p>
+      <button class="btn btn-block" type="submit">Sign in <span class="arrow">→</span></button>
+      <a href="/" class="muted-s back">← Back to the site</a>
+    </form>
+  </main>
+</AdminLayout>
+
+<script>
+  import { api } from '../../scripts/admin';
+  const f = document.getElementById('login') as HTMLFormElement;
+  f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = document.getElementById('login-err')!;
+    const btn = f.querySelector('button')!;
+    btn.disabled = true;
+    err.hidden = true;
+    const d = new FormData(f);
+    try {
+      await api('/api/auth/login', 'POST', { email: d.get('email'), password: d.get('password') });
+      location.href = f.dataset.next || '/admin';
+    } catch (x) {
+      err.textContent = (x as Error).message;
+      err.hidden = false;
+      btn.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .login { min-height: 100vh; display: grid; place-items: center; padding: 1.25rem; }
+  .login-card { width: min(420px, 100%); display: grid; gap: 1rem; padding: 2rem; }
+  .login-card img { width: 140px; height: auto; margin-bottom: 0.5rem; }
+  .back { text-align: center; }
+</style>

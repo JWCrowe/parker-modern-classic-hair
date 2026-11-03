@@ -1,0 +1,231 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { sql } from '../../lib/db';
+import { env } from '../../lib/env';
+import { googleConfigured, getConnection, redirectUri } from '../../lib/google';
+import { getSquareConn, squareOAuthConfigured, squareRedirectUri, squareEnv, squareDashboard } from '../../lib/square';
+import { fmtDateTime } from '../../lib/time';
+
+const origin = Astro.url.origin;
+const gOk = googleConfigured();
+const g = await getConnection().catch(() => null);
+const sOk = squareOAuthConfigured();
+const s = await getSquareConn().catch(() => null);
+const tokenMode = Boolean(env('SQUARE_ACCESS_TOKEN'));
+const services = await sql()`select id, name, price_cents, square_variation_id, active from services order by active desc, sort_order`;
+const resendOk = Boolean(env('RESEND_API_KEY'));
+const from = env('RESEND_FROM') || 'onboarding@resend.dev';
+const fromDomain = (from.match(/@([^>\s]+)/) || [])[1] || '';
+const notify = env('ADMIN_NOTIFY_EMAIL') || env('ADMIN_EMAIL') || '';
+const qp = Astro.url.searchParams;
+const flash: Record<string, [string, string]> = {
+  connected: ['ok', 'Connected.'],
+  'missing-config': ['bad', 'App credentials are not set on the server yet. Follow the steps below.'],
+  'bad-state': ['bad', 'That sign in link expired. Try again.'],
+  access_denied: ['bad', 'Access was denied, nothing changed.'],
+  'no-code': ['bad', 'No authorization code came back. Try again.'],
+  error: ['bad', 'Something went wrong.'],
+};
+const sqFlash = qp.get('square') ? flash[qp.get('square')!] || ['bad', qp.get('square')!] : null;
+const gFlash = qp.get('google') ? flash[qp.get('google')!] || ['bad', qp.get('google')!] : null;
+const msg = qp.get('msg') || '';
+---
+
+<AdminLayout title="Settings" active="settings">
+  <div class="admin-top">
+    <div>
+      <p class="kicker">Hook it all up</p>
+      <h1 class="admin-title">Sett<span class="serif-i">ings</span></h1>
+    </div>
+  </div>
+
+  <section class="card" id="square">
+    <h2 class="card-title">Square Appointments <span class="pill square">{squareEnv() === 'production' ? 'Production' : 'Sandbox'}</span></h2>
+    {sqFlash && <p class={`note ${sqFlash[0] === 'bad' ? 'bad' : ''}`} style="margin-bottom:1rem">{sqFlash[1]} {msg}</p>}
+    {s ? (
+      <>
+        <dl class="kv" style="margin-bottom:1rem">
+          <dt>Status</dt><dd><span class="pill completed">Connected</span>{tokenMode && <span class="muted-s"> using SQUARE_ACCESS_TOKEN</span>}</dd>
+          <dt>Location</dt><dd>{s.location_name || s.location_id || <span class="err">Not picked yet</span>}</dd>
+          <dt>Barber</dt><dd>{s.team_member_name || s.team_member_id || <span class="muted-s">Any bookable team member</span>}</dd>
+          <dt>Last sync</dt><dd>{s.last_sync_at ? fmtDateTime(s.last_sync_at) : 'Never'}{s.last_sync_summary && <span class="muted-s"> · {s.last_sync_summary}</span>}</dd>
+          {s.expires_at && <><dt>Token renews</dt><dd>Automatically, before {fmtDateTime(s.expires_at)}</dd></>}
+        </dl>
+        {s.last_error && <p class="note bad" style="margin-bottom:1rem">{s.last_error}</p>}
+        <p class="muted-s" style="margin-bottom:1rem">The website books straight into Square, and Square bookings mirror into this admin (clients, visits, value). Appointments booked in Square that are still pending need to be accepted in the Square app.</p>
+
+        <div id="sq-config" class="dlg-in" style="padding:0" data-loc={s.location_id || ''} data-team={s.team_member_id || ''}>
+          <p class="muted-s" id="sq-loading">Loading your Square locations and services...</p>
+          <div class="form-grid" hidden id="sq-pick">
+            <label class="f"><span>Location</span><select name="location"></select></label>
+            <label class="f"><span>Barber (team member)</span><select name="team"><option value="">Any bookable</option></select></label>
+          </div>
+          <div hidden id="sq-map">
+            <p class="kicker" style="margin:.5rem 0">Match site services to Square services</p>
+            <div class="form-grid">
+              {services.filter((x: any) => x.active).map((x: any) => (
+                <label class="f"><span>{x.name}</span><select data-svc={x.id} data-cur={x.square_variation_id || ''}><option value="">Not on Square</option></select></label>
+              ))}
+            </div>
+          </div>
+          <p class="err" hidden id="sq-err"></p>
+          <div class="row">
+            <button class="btn btn-sm" type="button" id="sq-save" hidden>Save Square setup</button>
+            <button class="btn btn-sm btn-ghost" data-api="/api/admin/square/sync" data-method="POST" data-body='{"full":false}' data-done="Synced">Sync now</button>
+            <button class="btn btn-sm btn-ghost" data-api="/api/admin/square/sync" data-method="POST" data-body='{"full":true}' data-done="Full sync done">Full import (last year)</button>
+            <a class="btn btn-sm btn-ghost" href={squareDashboard()} target="_blank" rel="noopener">Open Square ↗</a>
+            {!tokenMode && <button class="btn btn-sm btn-danger" data-api="/api/admin/square/disconnect" data-method="POST" data-confirm="Disconnect Square? Online booking falls back to your posted hours as requests." data-done="Disconnected">Disconnect</button>}
+          </div>
+        </div>
+      </>
+    ) : sOk ? (
+      <>
+        <p style="margin-bottom:1rem">Connect your Square account so the website books into your real Square calendar and your Square clients show up here.</p>
+        <a class="btn" href="/api/admin/square/start">Connect Square</a>
+        <p class="muted-s" style="margin-top:.8rem">Until then, the site takes booking requests from your posted hours, and you confirm them here.</p>
+      </>
+    ) : (
+      <div class="note warn">
+        <b>Square is not set up on the server yet.</b> Jeff (or whoever manages the site) does this once:
+        <ol>
+          <li>Go to <a class="link" href="https://developer.squareup.com/apps" target="_blank" rel="noopener">developer.squareup.com/apps</a> and create an application.</li>
+          <li>Under OAuth, add this Redirect URL: <code class="k">{squareRedirectUri(origin)}</code></li>
+          <li>Copy the Application ID and Application Secret into Vercel env as <code class="k">SQUARE_APPLICATION_ID</code> and <code class="k">SQUARE_APPLICATION_SECRET</code>, set <code class="k">SQUARE_ENVIRONMENT</code> to <code class="k">sandbox</code> or <code class="k">production</code>, then redeploy.</li>
+          <li>Come back here and press Connect Square.</li>
+        </ol>
+      </div>
+    )}
+    <details style="margin-top:1rem">
+      <summary class="muted-s" style="cursor:pointer">What Ben sets up in the Square Dashboard</summary>
+      <div class="note" style="margin-top:.6rem">
+        <ol>
+          <li>Turn on Square Appointments (Free works) and online booking for the Calhoun location.</li>
+          <li>Create each service (Men's Haircut, Beard, Men's Haircut &amp; Beard, Kid's Haircut, Women's Haircut) as an appointment service with price and duration, and mark it bookable online for Ben.</li>
+          <li>Set booking acceptance: Automatic shows clients "You're booked". Manual leaves them as requests you accept in the Square app.</li>
+          <li>Do not require a card or no-show fee for online booking; the site cannot collect cards.</li>
+          <li>Time off: blocks you make in this admin hide times on this website. If your Square booking page is also live, add the same time off in Square.</li>
+        </ol>
+      </div>
+    </details>
+  </section>
+
+  <section class="card" id="google">
+    <h2 class="card-title">Google Calendar <span class="pill">Optional</span></h2>
+    {gFlash && <p class={`note ${gFlash[0] === 'bad' ? 'bad' : ''}`} style="margin-bottom:1rem">{gFlash[1]} {msg}</p>}
+    {g ? (
+      <>
+        <dl class="kv" style="margin-bottom:1rem">
+          <dt>Status</dt><dd><span class="pill completed">Connected</span></dd>
+          <dt>Account</dt><dd>{g.email || 'Google account'}</dd>
+          <dt>Since</dt><dd>{fmtDateTime(g.connected_at)}</dd>
+        </dl>
+        {g.last_error && <p class="note bad" style="margin-bottom:1rem">{g.last_error}</p>}
+        <p class="muted-s" style="margin-bottom:1rem">Busy times on this calendar are hidden from online booking. Confirmed website bookings and your blocks get added to it{s ? ' (Square bookings are left to Square\'s own Google sync, so nothing doubles up)' : ''}.</p>
+        <button class="btn btn-sm btn-danger" data-api="/api/admin/google/disconnect" data-method="POST" data-confirm="Disconnect Google Calendar?" data-done="Disconnected">Disconnect</button>
+      </>
+    ) : gOk ? (
+      <>
+        <p style="margin-bottom:1rem">Connect your Google Calendar so personal busy times block online booking.</p>
+        <a class="btn btn-sm" href="/api/admin/google/start">Connect Google Calendar</a>
+      </>
+    ) : (
+      <div class="note warn">
+        <b>Google is not set up on the server yet.</b> Steps:
+        <ol>
+          <li>In <a class="link" href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, create a project and enable the Google Calendar API.</li>
+          <li>OAuth consent screen: External, add scopes <code class="k">calendar.events</code> and <code class="k">calendar.freebusy</code>, and add Ben as a test user (or publish).</li>
+          <li>Credentials: create an OAuth client ID (Web application) with redirect URI <code class="k">{redirectUri(origin)}</code></li>
+          <li>Put the client ID and secret in Vercel env as <code class="k">GOOGLE_CLIENT_ID</code> and <code class="k">GOOGLE_CLIENT_SECRET</code>, then redeploy and press Connect here.</li>
+        </ol>
+      </div>
+    )}
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">Email</h2>
+    <dl class="kv">
+      <dt>Status</dt><dd>{resendOk ? <span class="pill completed">Resend on</span> : <span class="pill inquiry">Log only</span>}</dd>
+      <dt>Sends from</dt><dd>{from}</dd>
+      <dt>New bookings to</dt><dd>{notify || 'Not set'}</dd>
+    </dl>
+    {!resendOk && <p class="note warn" style="margin-top:1rem">No <code class="k">RESEND_API_KEY</code> yet, so emails are written to the server log instead of sent. Bookings still work.</p>}
+    {resendOk && fromDomain === 'resend.dev' && <p class="note warn" style="margin-top:1rem">Sending from onboarding@resend.dev only reaches the Resend account owner. Verify parkermodernclassichair.com in Resend and set <code class="k">RESEND_FROM</code> to send to clients.</p>}
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">Change password</h2>
+    <form id="pw-form" class="dlg-in" style="padding:0;max-width:460px">
+      <label class="f"><span>Current password</span><input name="current" type="password" autocomplete="current-password" required /></label>
+      <label class="f"><span>New password (10+ characters)</span><input name="next" type="password" minlength="10" autocomplete="new-password" required /></label>
+      <label class="f"><span>Repeat new password</span><input name="again" type="password" minlength="10" autocomplete="new-password" required /></label>
+      <p class="err" hidden></p>
+      <button class="btn btn-sm" type="submit">Update password</button>
+    </form>
+  </section>
+</AdminLayout>
+
+<script>
+  import { api, toast } from '../../scripts/admin';
+
+  const pw = document.getElementById('pw-form') as HTMLFormElement;
+  pw.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const d = Object.fromEntries(new FormData(pw)) as Record<string, string>;
+    const err = pw.querySelector('.err') as HTMLElement;
+    err.hidden = true;
+    if (d.next !== d.again) { err.textContent = 'New passwords do not match.'; err.hidden = false; return; }
+    try {
+      await api('/api/admin/password', 'POST', { current: d.current, next: d.next });
+      pw.reset();
+      toast('Password updated');
+    } catch (x) {
+      err.textContent = (x as Error).message;
+      err.hidden = false;
+    }
+  });
+
+  const cfg = document.getElementById('sq-config');
+  if (cfg) {
+    const loading = document.getElementById('sq-loading')!;
+    const pick = document.getElementById('sq-pick')!;
+    const map = document.getElementById('sq-map')!;
+    const save = document.getElementById('sq-save')!;
+    const errEl = document.getElementById('sq-err')!;
+    const loc = cfg.querySelector<HTMLSelectElement>('select[name=location]')!;
+    const team = cfg.querySelector<HTMLSelectElement>('select[name=team]')!;
+    const opt = (v: string, l: string, sel = false) => { const o = new Option(l, v, sel, sel); return o; };
+    api('/api/admin/square/config')
+      .then((d) => {
+        const curLoc = cfg.dataset.loc;
+        d.locations.forEach((l: any) => loc.add(opt(l.id, l.name)));
+        d.team.forEach((t: any) => team.add(opt(t.id, t.name)));
+        if (curLoc) loc.value = curLoc;
+        if (cfg.dataset.team) team.value = cfg.dataset.team;
+        cfg.querySelectorAll<HTMLSelectElement>('select[data-svc]').forEach((s) => {
+          d.services.forEach((v: any) => s.add(opt(v.variationId, `${v.itemName}${v.variationName && v.variationName !== 'Regular' ? ' · ' + v.variationName : ''} (${v.durationMin} min, $${(v.priceCents / 100).toFixed(0)})${v.bookable ? '' : ' not bookable'}`)));
+          s.value = s.dataset.cur || '';
+        });
+        loading.hidden = true;
+        pick.hidden = false;
+        map.hidden = d.services.length === 0;
+        if (!d.services.length) { errEl.textContent = 'No appointment services found in Square yet. Create them in the Square Dashboard, then reload.'; errEl.hidden = false; }
+        save.hidden = false;
+      })
+      .catch((x) => { loading.textContent = `Could not load Square setup: ${x.message}`; });
+    save.addEventListener('click', async () => {
+      const service_map: Record<string, string> = {};
+      cfg.querySelectorAll<HTMLSelectElement>('select[data-svc]').forEach((s) => (service_map[s.dataset.svc!] = s.value));
+      try {
+        await api('/api/admin/square/config', 'POST', {
+          location_id: loc.value, location_name: loc.selectedOptions[0]?.text || '',
+          team_member_id: team.value, team_member_name: team.value ? team.selectedOptions[0]?.text : '',
+          service_map,
+        });
+        toast('Square setup saved');
+        setTimeout(() => location.reload(), 500);
+      } catch (x) {
+        toast((x as Error).message, true);
+      }
+    });
+  }
+</script>

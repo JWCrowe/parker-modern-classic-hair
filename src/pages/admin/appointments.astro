@@ -1,0 +1,113 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import ApptActions from '../../components/admin/ApptActions.astro';
+import { sql } from '../../lib/db';
+import { syncIfStale } from '../../lib/square-sync';
+import { fmtDate, fmtTime, money, todayKey } from '../../lib/time';
+import { fmtPhone } from '../../lib/http';
+
+await syncIfStale().catch(() => {});
+const tab = Astro.url.searchParams.get('tab') || 'upcoming';
+const tabs = [
+  { k: 'upcoming', l: 'Upcoming' },
+  { k: 'past', l: 'Past' },
+  { k: 'completed', l: 'Completed' },
+  { k: 'cancelled', l: 'Cancelled' },
+  { k: 'no_show', l: 'No shows' },
+];
+const q = sql();
+let rows: any[];
+if (tab === 'past') rows = await q`select a.*, s.name as service_name, c.name as client_name, c.phone as client_phone, c.email as client_email from appointments a join services s on s.id = a.service_id join clients c on c.id = a.client_id where a.starts_at < now() and a.status <> 'cancelled' order by a.starts_at desc limit 300`;
+else if (['completed', 'cancelled', 'no_show'].includes(tab)) rows = await q`select a.*, s.name as service_name, c.name as client_name, c.phone as client_phone, c.email as client_email from appointments a join services s on s.id = a.service_id join clients c on c.id = a.client_id where a.status = ${tab} order by a.starts_at desc limit 300`;
+else rows = await q`select a.*, s.name as service_name, c.name as client_name, c.phone as client_phone, c.email as client_email from appointments a join services s on s.id = a.service_id join clients c on c.id = a.client_id where a.ends_at >= now() and a.status in ('inquiry', 'confirmed') order by a.starts_at asc limit 300`;
+const services = await q`select id, name, price_cents from services order by active desc, sort_order`;
+const today = todayKey();
+---
+
+<AdminLayout title="Appointments" active="appointments">
+  <div class="admin-top">
+    <div>
+      <p class="kicker">Every booking</p>
+      <h1 class="admin-title">Appoint<span class="serif-i">ments</span></h1>
+    </div>
+    <div class="row">
+      <a class="btn btn-sm btn-ghost" href="/admin/calendar">Calendar view</a>
+      <button class="btn btn-sm" type="button" id="open-log">Log a visit</button>
+    </div>
+  </div>
+
+  <nav class="tabs" style="margin-bottom:1.25rem">
+    {tabs.map((t) => <a href={`?tab=${t.k}`} class={tab === t.k ? 'is-cur' : ''}>{t.l}</a>)}
+  </nav>
+
+  <section class="card">
+    {rows.length ? (
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr><th>When</th><th>Client</th><th>Service</th><th class="num">Price</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {rows.map((a) => (
+              <tr>
+                <td style="white-space:nowrap">{fmtDate(a.starts_at)}<br /><span class="muted-s">{fmtTime(a.starts_at)}</span></td>
+                <td><a class="link" href={`/admin/clients/${a.client_id}`}>{a.client_name}</a><br /><span class="muted-s">{fmtPhone(a.client_phone)}</span></td>
+                <td>{a.service_name}{a.square_booking_id && <><br /><span class="pill square">Square</span></>}{a.source === 'admin' && <><br /><span class="pill">Logged</span></>}</td>
+                <td class="num">{money(a.price_cents)}</td>
+                <td><span class={`pill ${a.status}`}>{a.status.replace('_', ' ')}</span></td>
+                <td><ApptActions a={a} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <p class="empty">Nothing here yet.</p>
+    )}
+  </section>
+
+  <dialog class="dlg" id="log-dlg">
+    <form class="dlg-in" id="log-form">
+      <div class="dlg-head"><h2>Log a visit</h2><button class="dlg-x" type="button" data-close aria-label="Close">×</button></div>
+      <p class="muted-s">For walk-ins or bookings you took by phone. Completed visits count toward the client's visits and yearly value.</p>
+      <div class="form-grid">
+        <label class="f"><span>Client name</span><input name="name" required /></label>
+        <label class="f"><span>Phone</span><input name="phone" inputmode="tel" /></label>
+        <label class="f"><span>Email</span><input name="email" type="email" /></label>
+      </div>
+      <div class="form-grid">
+        <label class="f"><span>Service</span>
+          <select name="service">{services.map((s: any) => <option value={s.id} data-price={s.price_cents}>{s.name}</option>)}</select>
+        </label>
+        <label class="f"><span>Price ($)</span><input name="price" type="number" min="0" step="1" placeholder="Default" /></label>
+        <label class="f"><span>Status</span><select name="status"><option value="completed">Completed</option><option value="confirmed">Booked (upcoming)</option><option value="no_show">No show</option></select></label>
+      </div>
+      <div class="form-grid">
+        <label class="f"><span>Date</span><input name="date" type="date" value={today} required /></label>
+        <label class="f"><span>Time</span><input name="time" type="time" value="12:00" step="900" required /></label>
+      </div>
+      <label class="f"><span>Notes</span><textarea name="notes"></textarea></label>
+      <p class="err" hidden></p>
+      <button class="btn" type="submit">Save visit</button>
+    </form>
+  </dialog>
+</AdminLayout>
+
+<script>
+  import { api, toast } from '../../scripts/admin';
+  const dlg = document.getElementById('log-dlg') as HTMLDialogElement;
+  const form = document.getElementById('log-form') as HTMLFormElement;
+  document.getElementById('open-log')!.addEventListener('click', () => dlg.showModal());
+  dlg.querySelector('[data-close]')!.addEventListener('click', () => dlg.close());
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const d = Object.fromEntries(new FormData(form)) as Record<string, string>;
+    const err = form.querySelector('.err') as HTMLElement;
+    try {
+      await api('/api/admin/appointments', 'POST', { ...d, price_cents: d.price ? Math.round(Number(d.price) * 100) : null });
+      toast('Visit saved');
+      setTimeout(() => location.reload(), 400);
+    } catch (x) {
+      err.textContent = (x as Error).message;
+      err.hidden = false;
+    }
+  });
+</script>

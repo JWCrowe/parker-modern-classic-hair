@@ -1,0 +1,59 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { listClients } from '../../../lib/crm';
+import { syncIfStale } from '../../../lib/square-sync';
+import { fmtDate, money, nyParts } from '../../../lib/time';
+import { fmtPhone } from '../../../lib/http';
+
+await syncIfStale().catch(() => {});
+const q = Astro.url.searchParams.get('q') || '';
+const clients = await listClients(q);
+const year = nyParts(new Date()).year;
+const totals = clients.reduce((t, c) => ({ visits: t.visits + c.visit_count, year: t.year + c.year_value, life: t.life + c.lifetime_value }), { visits: 0, year: 0, life: 0 });
+---
+
+<AdminLayout title="Clients" active="clients">
+  <div class="admin-top">
+    <div>
+      <p class="kicker">Your book of business</p>
+      <h1 class="admin-title">Cli<span class="serif-i">ents</span></h1>
+      <p class="admin-sub">Visits and value count completed appointments only. Year value is {year} so far.</p>
+    </div>
+    <form class="row" method="get">
+      <label class="f" style="min-width:220px"><input name="q" value={q} placeholder="Search name, phone, email" aria-label="Search clients" /></label>
+      <button class="btn btn-sm btn-ghost" type="submit">Search</button>
+    </form>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b>{clients.length}</b><span>Clients{q ? ' found' : ''}</span></div>
+    <div class="stat"><b>{totals.visits}</b><span>Total visits</span></div>
+    <div class="stat hot"><b>{money(totals.year)}</b><span>{year} value</span></div>
+    <div class="stat"><b>{money(totals.life)}</b><span>Lifetime value</span></div>
+  </div>
+
+  <section class="card">
+    {clients.length ? (
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th class="num">Visits</th><th>Last visit</th><th class="num">{year} value</th><th class="num">Lifetime</th></tr></thead>
+          <tbody>
+            {clients.map((c) => (
+              <tr>
+                <td><a class="link" href={`/admin/clients/${c.id}`}>{c.name}</a>{c.next_visit && <><br /><span class="muted-s">Next: {fmtDate(c.next_visit)}</span></>}</td>
+                <td style="white-space:nowrap">{c.phone ? <a href={`tel:${c.phone}`}>{fmtPhone(c.phone)}</a> : <span class="muted-s">None</span>}</td>
+                <td>{c.email || <span class="muted-s">None</span>}</td>
+                <td class="num">{c.visit_count}</td>
+                <td style="white-space:nowrap">{c.last_visit ? fmtDate(c.last_visit, { month: 'short', day: 'numeric', year: 'numeric' }) : <span class="muted-s">Never</span>}</td>
+                <td class="num">{money(c.year_value)}</td>
+                <td class="num">{money(c.lifetime_value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <p class="empty">{q ? 'No clients match that search.' : 'No clients yet. They show up here as soon as someone books.'}</p>
+    )}
+  </section>
+</AdminLayout>

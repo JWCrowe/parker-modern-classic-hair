@@ -7,9 +7,25 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "seed": "node --env-file=.env scripts/seed.mjs",
+    "check": "astro check"
   },
   "dependencies": {
-    "astro": "^5.0.0"
+    "@astrojs/vercel": "^8.2.11",
+    "@neondatabase/serverless": "^1.2.0",
+    "astro": "^5.0.0",
+    "bcryptjs": "^3.0.3",
+    "googleapis": "^178.0.0",
+    "jose": "^6.2.15",
+    "resend": "^6.37.0"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@types/node": "^26.6.6",
+    "typescript": "^5.9.3"
   }
 }

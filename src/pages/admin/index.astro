@@ -1,0 +1,118 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import ApptActions from '../../components/admin/ApptActions.astro';
+import { sql } from '../../lib/db';
+import { dashboardStats, needsWrapUp } from '../../lib/crm';
+import { syncIfStale } from '../../lib/square-sync';
+import { getSquareConn } from '../../lib/square';
+import { getConnection } from '../../lib/google';
+import { fmtDate, fmtTime, money, nyToUtc, todayKey, addDays, fmtKey } from '../../lib/time';
+import { fmtPhone } from '../../lib/http';
+
+await syncIfStale().catch(() => {});
+const today = todayKey();
+const [stats, wrap, sqc, g] = await Promise.all([dashboardStats(), needsWrapUp(), getSquareConn().catch(() => null), getConnection().catch(() => null)]);
+const todays = await sql()`select a.*, s.name as service_name, c.name as client_name, c.phone as client_phone, c.email as client_email
+  from appointments a join services s on s.id = a.service_id join clients c on c.id = a.client_id
+  where a.starts_at >= ${nyToUtc(today, 0).toISOString()} and a.starts_at < ${nyToUtc(addDays(today, 1), 0).toISOString()} and a.status <> 'cancelled'
+  order by a.starts_at`;
+const inq = await sql()`select a.*, s.name as service_name, c.name as client_name, c.phone as client_phone, c.email as client_email
+  from appointments a join services s on s.id = a.service_id join clients c on c.id = a.client_id
+  where a.status = 'inquiry' and a.starts_at > now() - interval '1 day' order by a.created_at desc limit 5`;
+const blocksToday = await sql()`select * from blocks where starts_at < ${nyToUtc(addDays(today, 1), 0).toISOString()} and ends_at > ${nyToUtc(today, 0).toISOString()} order by starts_at`;
+---
+
+<AdminLayout title="Dashboard" active="dash">
+  <div class="admin-top">
+    <div>
+      <p class="kicker">{fmtKey(today)}</p>
+      <h1 class="admin-title">Hey <span class="serif-i">Ben.</span></h1>
+    </div>
+    <div class="row">
+      <a class="btn btn-sm" href="/admin/calendar">Open calendar</a>
+      <a class="btn btn-sm btn-ghost" href="/admin/calendar?block=1">Block time</a>
+    </div>
+  </div>
+
+  {(!sqc || !g) && (
+    <p class="note warn" style="margin-bottom:1.25rem">
+      {!sqc ? 'Square is not connected yet, so the site is taking booking requests from your posted hours. ' : ''}
+      {!g ? 'Google Calendar is optional. ' : ''}
+      <a class="link" href="/admin/settings">Open settings</a>
+    </p>
+  )}
+
+  <div class="stats">
+    <a class={`stat ${stats.inquiries ? 'hot' : ''}`} href="/admin/inquiries"><b>{stats.inquiries}</b><span>New inquiries</span></a>
+    <div class="stat"><b>{stats.cuts_week}</b><span>Cuts this week</span></div>
+    <div class="stat"><b>{stats.cuts_month}</b><span>Cuts this month</span></div>
+    <div class="stat"><b>{stats.cuts_year}</b><span>Cuts this year</span></div>
+    <div class="stat"><b>{money(stats.revenue_month)}</b><span>Revenue this month</span></div>
+    <div class="stat hot"><b>{money(stats.revenue_year)}</b><span>Revenue this year</span></div>
+    <div class="stat"><b>{stats.clients_year}</b><span>Clients this year</span></div>
+    <div class="stat"><b>{stats.upcoming}</b><span>Upcoming confirmed</span></div>
+  </div>
+
+  <div class="grid-2">
+    <section class="card">
+      <h2 class="card-title">Today <a class="link muted-s" href={`/admin/calendar?view=day&date=${today}`}>Day view</a></h2>
+      {blocksToday.map((b: any) => (
+        <p class="note" style="margin-bottom:.6rem">Blocked {b.all_day ? 'all day' : `${fmtTime(b.starts_at)} to ${fmtTime(b.ends_at)}`}{b.title ? `: ${b.title}` : ''}</p>
+      ))}
+      {todays.length ? (
+        <div class="list">
+          {todays.map((a: any) => (
+            <div class="item">
+              <div class="item-main">
+                <span class="item-when">{fmtTime(a.starts_at)}</span>
+                <span class="item-name"><a class="link" href={`/admin/clients/${a.client_id}`}>{a.client_name}</a> <span class={`pill ${a.status}`}>{a.status.replace('_', ' ')}</span>{a.square_booking_id && <span class="pill square">Square</span>}</span>
+                <span class="muted-s">{a.service_name} · {money(a.price_cents)} · {fmtPhone(a.client_phone)}</span>
+              </div>
+              <ApptActions a={a} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class="empty">Nothing on the books today.</p>
+      )}
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Newest inquiries <a class="link muted-s" href="/admin/inquiries">All</a></h2>
+      {inq.length ? (
+        <div class="list">
+          {inq.map((a: any) => (
+            <div class="item">
+              <div class="item-main">
+                <span class="item-when">{fmtDate(a.starts_at)} · {fmtTime(a.starts_at)}</span>
+                <span class="item-name">{a.client_name}</span>
+                <span class="muted-s">{a.service_name} · {fmtPhone(a.client_phone)}</span>
+              </div>
+              <ApptActions a={a} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class="empty">No open requests. Nice.</p>
+      )}
+    </section>
+  </div>
+
+  {wrap.length > 0 && (
+    <section class="card" style="margin-top:1.25rem">
+      <h2 class="card-title">Wrap up past appointments</h2>
+      <p class="muted-s" style="margin-bottom:1rem">Mark these done so visit counts and yearly value stay right.</p>
+      <div class="list">
+        {wrap.map((a: any) => (
+          <div class="item">
+            <div class="item-main">
+              <span class="item-name">{a.client_name}</span>
+              <span class="muted-s">{fmtDate(a.starts_at)} {fmtTime(a.starts_at)} · {a.service_name} · {money(a.price_cents)}</span>
+            </div>
+            <ApptActions a={{ ...a, status: 'confirmed', ends_at: a.starts_at }} />
+          </div>
+        ))}
+      </div>
+    </section>
+  )}
+</AdminLayout>

@@ -1,0 +1,48 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import ApptActions from '../../components/admin/ApptActions.astro';
+import { sql } from '../../lib/db';
+import { syncIfStale } from '../../lib/square-sync';
+import { fmtDate, fmtTime, money } from '../../lib/time';
+import { fmtPhone } from '../../lib/http';
+
+await syncIfStale().catch(() => {});
+const rows = await sql()`select a.*, s.name as service_name, c.name as client_name, c.phone as client_phone, c.email as client_email,
+    (select count(*)::int from appointments x where x.client_id = c.id and x.status = 'completed') as visits
+  from appointments a join services s on s.id = a.service_id join clients c on c.id = a.client_id
+  where a.status = 'inquiry' order by (a.starts_at < now()) asc, a.starts_at asc`;
+---
+
+<AdminLayout title="Inquiries" active="inquiries">
+  <div class="admin-top">
+    <div>
+      <p class="kicker">Requests waiting on you</p>
+      <h1 class="admin-title">Inquir<span class="serif-i">ies</span></h1>
+      <p class="admin-sub">Confirm emails the client and adds it to your calendar. Decline frees the time and lets them know.</p>
+    </div>
+  </div>
+  <section class="card">
+    {rows.length ? (
+      <div class="list">
+        {rows.map((a: any) => (
+          <div class="item">
+            <div class="item-main">
+              <span class="item-when">{fmtDate(a.starts_at, { weekday: 'long', month: 'short', day: 'numeric' })} · {fmtTime(a.starts_at)}</span>
+              <span class="item-name">
+                <a class="link" href={`/admin/clients/${a.client_id}`}>{a.client_name}</a>
+                {a.visits > 0 ? <span class="pill completed">{a.visits} visits</span> : <span class="pill">New client</span>}
+                {a.square_booking_id && <span class="pill square">Square {a.square_status?.toLowerCase()}</span>}
+                {new Date(a.starts_at) < new Date() && <span class="pill no_show">Past</span>}
+              </span>
+              <span class="muted-s">{a.service_name} · {money(a.price_cents)} · <a class="link" href={`tel:${a.client_phone}`}>{fmtPhone(a.client_phone)}</a>{a.client_email ? ` · ${a.client_email}` : ''}</span>
+              {a.notes && <span class="muted-s">“{a.notes}”</span>}
+            </div>
+            <ApptActions a={a} />
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p class="empty">No open requests right now.</p>
+    )}
+  </section>
+</AdminLayout>

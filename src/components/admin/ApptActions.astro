@@ -1,0 +1,35 @@
+---
+import { squareDashboard } from '../../lib/square';
+interface Props { a: { id: string; status: string; starts_at: string | Date; ends_at: string | Date; square_booking_id?: string | null; square_status?: string | null; client_email?: string | null } }
+const { a } = Astro.props;
+const url = `/api/admin/appointments/${a.id}`;
+const past = new Date(a.ends_at).getTime() < Date.now();
+const isSquare = Boolean(a.square_booking_id);
+const body = (o: object) => JSON.stringify(o);
+const mail = a.client_email ? ' The client gets an email.' : '';
+---
+
+<div class="item-actions">
+  {a.status === 'inquiry' && (
+    isSquare && a.square_status === 'PENDING' ? (
+      <a class="btn btn-xs" href={squareDashboard()} target="_blank" rel="noopener">Accept in Square ↗</a>
+    ) : (
+      <button class="btn btn-xs" data-api={url} data-method="PATCH" data-body={body({ status: 'confirmed' })} data-done="Confirmed">Confirm</button>
+    )
+  )}
+  {a.status === 'inquiry' && (
+    <button class="btn btn-xs btn-danger" data-api={url} data-method="PATCH" data-body={body({ status: 'cancelled' })} data-confirm={`Decline this request?${mail}`} data-done="Declined">Decline</button>
+  )}
+  {a.status === 'confirmed' && (
+    <button class="btn btn-xs" data-api={url} data-method="PATCH" data-body={body({ status: 'completed' })} data-done="Marked completed">{past ? 'Completed' : 'Mark done'}</button>
+  )}
+  {a.status === 'confirmed' && (
+    <button class="btn btn-xs btn-ghost" data-api={url} data-method="PATCH" data-body={body({ status: 'no_show' })} data-confirm="Mark as a no show?" data-done="Marked no show">No show</button>
+  )}
+  {a.status === 'confirmed' && !past && (
+    <button class="btn btn-xs btn-danger" data-api={url} data-method="PATCH" data-body={body({ status: 'cancelled' })} data-confirm={`Cancel this appointment?${mail}${isSquare ? ' It is cancelled in Square too.' : ''}`} data-done="Cancelled">Cancel</button>
+  )}
+  {(a.status === 'completed' || a.status === 'no_show') && (
+    <button class="btn btn-xs btn-ghost" data-api={url} data-method="PATCH" data-body={body({ status: 'confirmed', notify: false })} data-done="Reopened">Undo</button>
+  )}
+</div>

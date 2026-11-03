@@ -1,4 +1,5 @@
 ---
+export const prerender = true;
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
@@ -76,8 +77,10 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
                 <span>Notes for Ben <em>optional</em></span>
                 <textarea id="notes" name="notes" rows="3" placeholder="Fade height, beard shape, anything he should know"></textarea>
               </label>
+              <label class="hp" aria-hidden="true">Website <input type="text" name="website" id="website" tabindex="-1" autocomplete="off" /></label>
               <p id="form-error" class="form-error" role="alert" hidden></p>
-              <button type="submit" class="btn btn-block">Confirm Booking <span class="arrow">→</span></button>
+              <button type="submit" id="submit-btn" class="btn btn-block">Request This Time <span class="arrow">→</span></button>
+              <p class="form-fine">Ben gets your request right away. You'll see the status on the next screen.</p>
             </form>
           </div>
 
@@ -85,11 +88,12 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
             <div class="stamp" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
             </div>
-            <h2 class="step-title display">You're <span class="serif-i brass">on deck.</span></h2>
-            <p class="step-sub">Your request is saved. Ben confirms every appointment personally, so send it his way below and he'll lock it in.</p>
+            <p class="done-status"><span id="status-pill" class="status-pill">Pending</span></p>
+            <h2 id="done-title" class="step-title display">Request <span class="serif-i brass">received.</span></h2>
+            <p id="done-sub" class="step-sub">Ben has your request and confirms every appointment personally. Want it faster? Text or call him below.</p>
             <div id="confirmation" class="stub"></div>
             <div class="done-actions">
-              <a id="send-sms" class="btn btn-block" href="#">Text Ben My Request <span class="arrow">→</span></a>
+              <a id="send-sms" class="btn btn-block" href="#">Text Ben <span class="arrow">→</span></a>
               <a id="send-email" class="btn btn-ghost btn-block" href="#">Email Instead</a>
               <a href={business.phoneHref} class="btn btn-ghost btn-block">Call {business.phone}</a>
             </div>
@@ -138,51 +142,43 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
 </Layout>
 
 <script>
-  import { services, hours, business } from '../data/site';
+  import { services, business } from '../data/site';
   import type { Service } from '../data/site';
 
-  type State = { step: number; maxStep: number; service: Service | null; date: string | null; time: number | null; details: Record<string, string> };
+  type Slot = { time: string; label: string; startsAt: string };
+  type State = { step: number; maxStep: number; service: Service | null; date: string | null; slot: Slot | null; details: Record<string, string> };
 
+  const TZ = 'America/New_York';
   const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
   const pad = (n: number) => String(n).padStart(2, '0');
-  // Local date key (avoids the UTC off-by-one from toISOString / new Date('YYYY-MM-DD')).
-  const keyOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  const parseKey = (k: string) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
-  const fmtTime = (t: number) => {
-    const h = Math.floor(t);
-    const m = Math.round((t % 1) * 60);
-    const hh = h % 12 === 0 ? 12 : h % 12;
-    return `${hh}:${pad(m)} ${h >= 12 ? 'PM' : 'AM'}`;
-  };
+  // Date keys are shop-local (America/New_York) no matter where the visitor is.
+  const todayKey = () => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+  const keyDate = (k: string) => new Date(`${k}T12:00:00Z`);
+  const fmtKey = (k: string, o: Intl.DateTimeFormatOptions) => keyDate(k).toLocaleDateString('en-US', { timeZone: 'UTC', ...o });
   const fmtDur = (m: number) => (m >= 60 ? `${m / 60} hr` : `${m} min`);
-  const longDate = (k: string) => parseKey(k).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const longDate = (k: string) => fmtKey(k, { weekday: 'long', month: 'long', day: 'numeric' });
+
+  async function getJSON(url: string) {
+    const r = await fetch(url, { headers: { accept: 'application/json' } });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Could not load times right now.');
+    return d;
+  }
 
   function init() {
     const app = document.getElementById('booking-app');
     if (!app) return;
 
-    const state: State = { step: 1, maxStep: 1, service: null, date: null, time: null, details: {} };
+    const state: State = { step: 1, maxStep: 1, service: null, date: null, slot: null, details: {} };
     const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-
-    function slotsFor(dateKey: string, svc: Service) {
-      const d = parseKey(dateKey);
-      const h = hours[d.getDay()];
-      if (!h) return [];
-      const now = new Date();
-      const isToday = keyOf(now) === dateKey;
-      const nowT = now.getHours() + now.getMinutes() / 60;
-      const out: number[] = [];
-      for (let t = h.open; t + svc.duration / 60 <= h.close; t += 0.5) {
-        if (isToday && t <= nowT + 0.25) continue;
-        out.push(t);
-      }
-      return out;
-    }
+    const loading = (msg: string) => `<p class="step-sub loading"><span class="spin" aria-hidden="true"></span>${msg}</p>`;
+    const fallback = (msg: string) => `<div class="fallback"><p class="step-sub">${esc(msg)}</p><div class="row-btns"><a class="btn btn-sm" href="${business.smsHref}">Text Ben</a><a class="btn btn-ghost btn-sm" href="${business.phoneHref}">Call ${business.phone}</a></div></div>`;
+    let token = 0;
 
     function updateSummary() {
       $('sum-service').textContent = state.service ? state.service.name : 'Not selected';
-      $('sum-date').textContent = state.date ? parseKey(state.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'Not selected';
-      $('sum-time').textContent = state.time != null ? fmtTime(state.time) : 'Not selected';
+      $('sum-date').textContent = state.date ? fmtKey(state.date, { weekday: 'short', month: 'short', day: 'numeric' }) : 'Not selected';
+      $('sum-time').textContent = state.slot ? state.slot.label : 'Not selected';
       $('sum-duration').textContent = state.service ? fmtDur(state.service.duration) : '--';
       $('sum-price').textContent = state.service ? state.service.price : '$0';
       document.querySelectorAll('.ticket-lines dd').forEach((dd) => dd.classList.toggle('set', dd.textContent !== 'Not selected' && dd.textContent !== '--'));
@@ -208,70 +204,84 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
         .join('');
       c.querySelectorAll<HTMLButtonElement>('.svc-opt').forEach((b) =>
         b.addEventListener('click', () => {
-          const next = services.find((s) => s.id === b.dataset.id)!;
-          if (state.service?.id !== next.id) { state.time = null; state.maxStep = 2; }
-          state.service = next;
+          const svc = services.find((s) => s.id === b.dataset.id)!;
+          if (state.service?.id !== svc.id) { state.date = null; state.slot = null; state.maxStep = 2; }
+          state.service = svc;
           go(2);
         })
       );
     }
 
-    function renderDates() {
+    async function renderDates() {
       const c = $('dates');
-      const today = new Date();
-      const list: Date[] = [];
-      for (let i = 0; i < 14; i++) {
-        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
-        const day = d.getDay();
-        if (day === 0 || day === 6) continue;
-        if (state.service && slotsFor(keyOf(d), state.service).length === 0) continue; // e.g. today after close
-        list.push(d);
+      if (!state.service) return;
+      const my = ++token;
+      c.innerHTML = loading('Checking Ben\'s calendar...');
+      try {
+        const d = await getJSON(`/api/availability?start=${todayKey()}&days=21&service=${encodeURIComponent(state.service.id)}`);
+        if (my !== token) return;
+        const list = (d.days as { date: string; count: number }[]).filter((x) => x.count > 0).slice(0, 14);
+        const today = todayKey();
+        c.innerHTML = list.length
+          ? list
+              .map(
+                (x, i) => `<button type="button" class="opt date-opt${state.date === x.date ? ' is-sel' : ''}" data-date="${x.date}" style="--i:${i}">
+            <span class="d-wk">${x.date === today ? 'Today' : fmtKey(x.date, { weekday: 'short' })}</span>
+            <span class="d-num">${Number(x.date.slice(8))}</span>
+            <span class="d-mo">${fmtKey(x.date, { month: 'short' })}</span>
+            <span class="d-ct">${x.count} open</span>
+          </button>`
+              )
+              .join('')
+          : fallback('Ben is booked solid for the next few weeks online. Text or call and he will try to fit you in.');
+        c.querySelectorAll<HTMLButtonElement>('.date-opt').forEach((b) =>
+          b.addEventListener('click', () => {
+            if (state.date !== b.dataset.date) { state.slot = null; state.maxStep = 3; }
+            state.date = b.dataset.date!;
+            go(3);
+          })
+        );
+      } catch (e) {
+        if (my === token) c.innerHTML = fallback((e as Error).message);
       }
-      c.innerHTML = list
-        .map((d, i) => {
-          const k = keyOf(d);
-          const isToday = k === keyOf(today);
-          return `<button type="button" class="opt date-opt${state.date === k ? ' is-sel' : ''}" data-date="${k}" style="--i:${i}">
-            <span class="d-wk">${isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
-            <span class="d-num">${d.getDate()}</span>
-            <span class="d-mo">${d.toLocaleDateString('en-US', { month: 'short' })}</span>
-          </button>`;
-        })
-        .join('');
-      c.querySelectorAll<HTMLButtonElement>('.date-opt').forEach((b) =>
-        b.addEventListener('click', () => {
-          if (state.date !== b.dataset.date) { state.time = null; state.maxStep = 3; }
-          state.date = b.dataset.date!;
-          go(3);
-        })
-      );
     }
 
-    function renderTimes() {
+    async function renderTimes(note = '') {
       const c = $('times');
       if (!state.date || !state.service) return;
-      const slots = slotsFor(state.date, state.service);
       $('time-context').textContent = `${longDate(state.date)} · ${state.service.name} · ${fmtDur(state.service.duration)}`;
-      const groups = [
-        { label: 'Morning', items: slots.filter((t) => t < 12) },
-        { label: 'Afternoon', items: slots.filter((t) => t >= 12 && t < 17) },
-        { label: 'Evening', items: slots.filter((t) => t >= 17) },
-      ].filter((g) => g.items.length);
-      c.innerHTML = groups.length
-        ? groups
-            .map(
-              (g) => `<div class="time-group"><p class="tg-label">${g.label}</p><div class="time-grid">${g.items
-                .map((t) => `<button type="button" class="opt time-opt${state.time === t ? ' is-sel' : ''}" data-time="${t}">${fmtTime(t)}</button>`)
-                .join('')}</div></div>`
-            )
-            .join('')
-        : `<p class="step-sub">No open times left on this day. Pick another date.</p>`;
-      c.querySelectorAll<HTMLButtonElement>('.time-opt').forEach((b) =>
-        b.addEventListener('click', () => {
-          state.time = Number(b.dataset.time);
-          go(4);
-        })
-      );
+      const my = ++token;
+      c.innerHTML = loading('Loading open times...');
+      try {
+        const d = await getJSON(`/api/availability?date=${state.date}&service=${encodeURIComponent(state.service.id)}`);
+        if (my !== token) return;
+        const slots = d.slots as Slot[];
+        const h = (s: Slot) => Number(s.time.slice(0, 2));
+        const groups = [
+          { label: 'Morning', items: slots.filter((s) => h(s) < 12) },
+          { label: 'Afternoon', items: slots.filter((s) => h(s) >= 12 && h(s) < 17) },
+          { label: 'Evening', items: slots.filter((s) => h(s) >= 17) },
+        ].filter((g) => g.items.length);
+        c.innerHTML =
+          (note ? `<p class="form-error" role="alert" style="margin-bottom:1rem">${esc(note)}</p>` : '') +
+          (groups.length
+            ? groups
+                .map(
+                  (g) => `<div class="time-group"><p class="tg-label">${g.label}</p><div class="time-grid">${g.items
+                    .map((s) => `<button type="button" class="opt time-opt${state.slot?.startsAt === s.startsAt ? ' is-sel' : ''}" data-at="${s.startsAt}">${esc(s.label)}</button>`)
+                    .join('')}</div></div>`
+                )
+                .join('')
+            : `<p class="step-sub">No open times left on this day. Pick another date.</p>`);
+        c.querySelectorAll<HTMLButtonElement>('.time-opt').forEach((b) =>
+          b.addEventListener('click', () => {
+            state.slot = slots.find((s) => s.startsAt === b.dataset.at) || null;
+            go(4);
+          })
+        );
+      } catch (e) {
+        if (my === token) c.innerHTML = fallback((e as Error).message);
+      }
     }
 
     function showStep(n: number) {
@@ -294,12 +304,12 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
       updateSummary();
     }
 
-    function go(n: number) {
+    function go(n: number, note = '') {
       state.step = n;
       state.maxStep = Math.max(state.maxStep, n);
       if (n === 1) renderServices();
       if (n === 2) renderDates();
-      if (n === 3) renderTimes();
+      if (n === 3) renderTimes(note);
       showStep(n);
       const top = app!.getBoundingClientRect().top + window.scrollY - 90;
       if (window.scrollY > top) window.scrollTo({ top, behavior: 'smooth' });
@@ -310,31 +320,77 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
       b.addEventListener('click', () => { const n = Number(b.dataset.go); if (n <= state.maxStep) go(n); })
     );
 
-    $<HTMLFormElement>('details-form').addEventListener('submit', (e) => {
+    let sending = false;
+    $<HTMLFormElement>('details-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (sending) return;
       const name = $<HTMLInputElement>('name').value.trim();
       const phone = $<HTMLInputElement>('phone').value.trim();
       const email = $<HTMLInputElement>('email').value.trim();
       const notes = $<HTMLTextAreaElement>('notes').value.trim();
+      const website = $<HTMLInputElement>('website').value;
       const err = $('form-error');
-      const digits = phone.replace(/\D/g, '');
+      const digits = phone.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
       let msg = '';
       if (!name) msg = 'Add your name so Ben knows who is coming in.';
-      else if (digits.length < 10) msg = 'Add a phone number Ben can reach you at.';
+      else if (digits.length !== 10) msg = 'Add a 10 digit phone number Ben can reach you at.';
       else if (email && !/^\S+@\S+\.\S+$/.test(email)) msg = 'That email does not look right.';
       document.querySelectorAll('.field').forEach((f) => f.classList.remove('bad'));
       if (msg) {
         err.textContent = msg;
         err.hidden = false;
-        (!name ? $('name') : digits.length < 10 ? $('phone') : $('email')).closest('.field')!.classList.add('bad');
+        (!name ? $('name') : digits.length !== 10 ? $('phone') : $('email')).closest('.field')!.classList.add('bad');
         return;
       }
       err.hidden = true;
       state.details = { name, phone, email, notes };
-
       const svc = state.service!;
-      const when = `${longDate(state.date!)} at ${fmtTime(state.time!)}`;
+      const slot = state.slot!;
+      const btn = $<HTMLButtonElement>('submit-btn');
+      const label = btn.innerHTML;
+      sending = true;
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      let res: Response | null = null;
+      let data: any = {};
+      try {
+        res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ service: svc.id, date: state.date, time: slot.time, name, phone, email, notes, website }),
+        });
+        data = await res.json().catch(() => ({}));
+      } catch {
+        data = { error: 'Could not reach the booking system. Text or call Ben instead.' };
+      }
+      sending = false;
+      btn.disabled = false;
+      btn.innerHTML = label;
+
+      if (res?.status === 409) {
+        state.slot = null;
+        go(3, data.error || 'That time was just taken. Pick another one.');
+        return;
+      }
+      if (!res?.ok || !data.ok) {
+        err.innerHTML = `${esc(data.error || 'Something went wrong.')} You can also <a href="${business.smsHref}">text</a> or <a href="${business.phoneHref}">call ${business.phone}</a>.`;
+        err.hidden = false;
+        return;
+      }
+
+      const confirmed = data.status === 'confirmed';
+      const pill = $('status-pill');
+      pill.textContent = confirmed ? 'Confirmed' : 'Pending confirmation';
+      pill.classList.toggle('ok', confirmed);
+      $('done-title').innerHTML = confirmed ? `You're <span class="serif-i brass">booked.</span>` : `Request <span class="serif-i brass">received.</span>`;
+      $('done-sub').textContent = confirmed
+        ? `You're on Ben's calendar.${email ? ' A confirmation is on its way to your email.' : ''} Need to change it? Text or call.`
+        : `Ben has your request and will confirm it personally${email ? ' by email' : ''}. Want it faster? Text or call him below.`;
+
+      const when = `${longDate(state.date!)} at ${slot.label}`;
       $('confirmation').innerHTML = `
+        <div class="stub-row"><span>Status</span><strong>${confirmed ? 'Confirmed' : 'Waiting on Ben'}</strong></div>
         <div class="stub-row"><span>Service</span><strong>${esc(svc.name)}</strong></div>
         <div class="stub-row"><span>When</span><strong>${esc(when)}</strong></div>
         <div class="stub-row"><span>Length</span><strong>${fmtDur(svc.duration)}</strong></div>
@@ -342,16 +398,9 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
         <div class="stub-row"><span>Phone</span><strong>${esc(phone)}</strong></div>
         <div class="stub-row total"><span>Total</span><strong>${svc.price}</strong></div>`;
 
-      const text = `Hi Ben, I'd like to book a ${svc.name} (${svc.price}) on ${when}. Name: ${name}. Phone: ${phone}.${notes ? ' Notes: ' + notes : ''}`;
+      const text = `Hi Ben, it's ${name}. I just ${confirmed ? 'booked' : 'requested'} a ${svc.name} on ${when} through the website. Phone: ${phone}.${notes ? ' Notes: ' + notes : ''}`;
       $<HTMLAnchorElement>('send-sms').href = `${business.smsHref}?&body=${encodeURIComponent(text)}`;
-      $<HTMLAnchorElement>('send-email').href = `mailto:${business.email}?subject=${encodeURIComponent('Booking request: ' + svc.name + ', ' + when)}&body=${encodeURIComponent(text + (email ? '\nEmail: ' + email : ''))}`;
-
-      const record = { service: svc, date: state.date, time: fmtTime(state.time!), details: state.details, createdAt: new Date().toISOString() };
-      try {
-        const prev = JSON.parse(localStorage.getItem('parker-bookings') || '[]');
-        localStorage.setItem('parker-bookings', JSON.stringify([...prev, record]));
-      } catch {}
-      console.log('Booking submitted:', record);
+      $<HTMLAnchorElement>('send-email').href = `mailto:${business.email}?subject=${encodeURIComponent((confirmed ? 'Booked: ' : 'Booking request: ') + svc.name + ', ' + when)}&body=${encodeURIComponent(text + (email ? '\nEmail: ' + email : ''))}`;
       go(5);
     });
 
@@ -478,6 +527,17 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
   .field input:focus, .field textarea:focus { outline: none; border-color: var(--brass); background: var(--char-2); box-shadow: 0 0 0 3px rgba(201, 162, 90, 0.15); }
   .field.bad input { border-color: #c46a4f; }
   .form-error { color: #e79a80; font-size: 0.9rem; }
+  .form-error :global(a) { color: var(--brass-hi); text-decoration: underline; }
+  .form-fine { font-size: 0.78rem; color: var(--mute); text-align: center; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .done-status { margin: -0.4rem 0 1rem; }
+  .status-pill { display: inline-block; padding: 0.35rem 0.8rem; border: 1px solid #d9a441; color: #f0c56b; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; }
+  .status-pill.ok { border-color: var(--brass); background: rgba(201, 162, 90, 0.14); color: var(--brass-hi); }
+  .panel :global(.d-ct) { font-size: 0.56rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cream-2); margin-top: 0.2rem; }
+  .panel :global(.loading) { display: flex; align-items: center; gap: 0.7rem; margin: 0; }
+  .panel :global(.spin) { width: 16px; height: 16px; border: 2px solid var(--line-2); border-top-color: var(--brass); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .panel :global(.fallback .row-btns) { display: flex; flex-wrap: wrap; gap: 0.6rem; }
   .form .btn { margin-top: 0.5rem; min-height: 58px; }
 
   /* Done */

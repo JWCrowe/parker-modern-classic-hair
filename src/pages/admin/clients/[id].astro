@@ -1,0 +1,98 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ApptActions from '../../../components/admin/ApptActions.astro';
+import { getClient } from '../../../lib/crm';
+import { fmtDate, fmtTime, money, nyParts } from '../../../lib/time';
+import { fmtPhone } from '../../../lib/http';
+
+const id = Astro.params.id!;
+const data = /^[0-9a-f-]{36}$/i.test(id) ? await getClient(id) : null;
+if (!data) return Astro.redirect('/admin/clients');
+const { client: c, history, byService } = data;
+const year = nyParts(new Date()).year;
+const avg = c.visit_count ? Math.round(c.lifetime_value / c.visit_count) : 0;
+---
+
+<AdminLayout title={c.name} active="clients">
+  <div class="admin-top">
+    <div>
+      <p class="kicker"><a href="/admin/clients">← Clients</a></p>
+      <h1 class="admin-title">{c.name}</h1>
+      <p class="admin-sub">
+        {c.phone && <a class="link" href={`tel:${c.phone}`}>{fmtPhone(c.phone)}</a>}
+        {c.email && <> · <a class="link" href={`mailto:${c.email}`}>{c.email}</a></>}
+        {c.square_customer_id && <> · <span class="pill square">Square customer</span></>}
+      </p>
+    </div>
+    <div class="row">
+      {c.phone && <a class="btn btn-sm btn-ghost" href={`sms:${c.phone.replace(/\D/g, '')}`}>Text</a>}
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat hot"><b>{c.visit_count}</b><span>Visits</span></div>
+    <div class="stat hot"><b>{money(c.year_value)}</b><span>{year} value</span></div>
+    <div class="stat"><b>{money(c.lifetime_value)}</b><span>Lifetime value</span></div>
+    <div class="stat"><b>{money(avg)}</b><span>Avg ticket</span></div>
+    <div class="stat"><b>{c.last_visit ? fmtDate(c.last_visit, { month: 'short', day: 'numeric' }) : 'Never'}</b><span>Last visit</span></div>
+    <div class="stat"><b>{c.no_shows}</b><span>No shows</span></div>
+  </div>
+
+  <div class="grid-2">
+    <section class="card">
+      <h2 class="card-title">What they book</h2>
+      {byService.length ? (
+        <table class="t"><tbody>{byService.map((s) => <tr><td>{s.name}</td><td class="num">{s.n}x</td><td class="num">{money(s.cents)}</td></tr>)}</tbody></table>
+      ) : <p class="empty">No completed visits yet.</p>}
+    </section>
+    <section class="card">
+      <h2 class="card-title">Details</h2>
+      <form id="client-form" class="dlg-in" style="padding:0" data-id={c.id}>
+        <div class="form-grid">
+          <label class="f"><span>Name</span><input name="name" value={c.name} required /></label>
+          <label class="f"><span>Phone</span><input name="phone" value={c.phone || ''} inputmode="tel" /></label>
+          <label class="f"><span>Email</span><input name="email" type="email" value={c.email || ''} /></label>
+        </div>
+        <label class="f"><span>Notes (fade height, beard shape, family, anything)</span><textarea name="notes">{c.notes}</textarea></label>
+        <div class="row"><button class="btn btn-sm" type="submit">Save</button><span class="muted-s">Client since {fmtDate(c.created_at, { month: 'short', year: 'numeric' })}</span></div>
+      </form>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:1.25rem">
+    <h2 class="card-title">History</h2>
+    {history.length ? (
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr><th>When</th><th>Service</th><th class="num">Price</th><th>Status</th><th>Notes</th><th></th></tr></thead>
+          <tbody>
+            {history.map((a) => (
+              <tr>
+                <td style="white-space:nowrap">{fmtDate(a.starts_at, { month: 'short', day: 'numeric', year: 'numeric' })}<br /><span class="muted-s">{fmtTime(a.starts_at)}</span></td>
+                <td>{a.service_name}</td>
+                <td class="num">{money(a.price_cents)}</td>
+                <td><span class={`pill ${a.status}`}>{a.status.replace('_', ' ')}</span>{a.square_booking_id && <> <span class="pill square">Square</span></>}</td>
+                <td class="muted-s">{a.notes}</td>
+                <td><ApptActions a={{ ...a, client_email: c.email }} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : <p class="empty">No appointments yet.</p>}
+  </section>
+</AdminLayout>
+
+<script>
+  import { api, toast } from '../../../scripts/admin';
+  const f = document.getElementById('client-form') as HTMLFormElement;
+  f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await api(`/api/admin/clients/${f.dataset.id}`, 'PATCH', Object.fromEntries(new FormData(f)));
+      toast('Saved');
+    } catch (x) {
+      toast((x as Error).message, true);
+    }
+  });
+</script>

@@ -1,0 +1,423 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { sql } from '../../lib/db';
+import { syncIfStale } from '../../lib/square-sync';
+import { getHours } from '../../lib/availability';
+import { freeBusy, getConnection } from '../../lib/google';
+import { getSquareConn } from '../../lib/square';
+import { addDays, dowOf, fmtKey, fmtTime, hhmm, isDateKey, nyParts, nyToUtc, todayKey, weekStart, money } from '../../lib/time';
+import { fmtPhone } from '../../lib/http';
+
+await syncIfStale().catch(() => {});
+const view = Astro.url.searchParams.get('view') === 'day' ? 'day' : 'week';
+const explicitView = Astro.url.searchParams.has('view');
+const today = todayKey();
+const date = isDateKey(Astro.url.searchParams.get('date')) ? Astro.url.searchParams.get('date')! : today;
+const start = view === 'week' ? weekStart(date) : date;
+const n = view === 'week' ? 7 : 1;
+const keys = Array.from({ length: n }, (_, i) => addDays(start, i));
+const from = nyToUtc(start, 0);
+const to = nyToUtc(addDays(start, n), 0);
+
+const [appts, blocks, hrs, gconn, sqc] = await Promise.all([
+  sql()`select a.id, a.starts_at, a.ends_at, a.status, a.price_cents, a.notes, a.square_booking_id, a.square_status, a.client_id,
+      s.name as service_name, c.name as client_name, c.phone as client_phone, c.email as client_email
+    from appointments a join services s on s.id = a.service_id join clients c on c.id = a.client_id
+    where a.starts_at < ${to.toISOString()} and a.ends_at > ${from.toISOString()} and a.status <> 'cancelled' order by a.starts_at`,
+  sql()`select * from blocks where starts_at < ${to.toISOString()} and ends_at > ${from.toISOString()} order by starts_at`,
+  getHours(),
+  getConnection().catch(() => null),
+  getSquareConn().catch(() => null),
+]);
+// Google busy shown as a hatch so Ben sees what the site is avoiding. Skip ones that match our own blocks / appts.
+const gb = gconn ? await freeBusy(from, to) : { busy: [] as { start: Date; end: Date }[] };
+const upcomingBlocks = await sql()`select * from blocks where ends_at > now() order by starts_at limit 50`;
+
+// Grid spans the earliest open hour to the latest close, padded, at least 8 AM to 8 PM.
+const opens = Object.values(hrs).filter(Boolean) as { open: number; close: number }[];
+const gStart = Math.min(8, ...opens.map((h) => Math.floor(h.open))) * 60;
+const gEnd = Math.max(20, ...opens.map((h) => Math.ceil(h.close))) * 60;
+const PPM = 1.4; // px per minute
+const height = (gEnd - gStart) * PPM;
+
+// Our own blocks / confirmed appointments are also on Google; do not draw them twice.
+const ownRanges = [...(blocks as any[]), ...(appts as any[])].map((r) => ({ s: new Date(r.starts_at).getTime(), e: new Date(r.ends_at).getTime() }));
+type Ev = { kind: 'appt' | 'block' | 'gbusy'; top: number; h: number; data: any; label: string; sub: string; cls: string };
+const cols = keys.map((k) => {
+  const dayStart = nyToUtc(k, 0).getTime();
+  const dayEnd = nyToUtc(addDays(k, 1), 0).getTime();
+  const place = (s: Date, e: Date) => {
+    const sm = Math.max((Math.max(s.getTime(), dayStart) - dayStart) / 60000, gStart);
+    const em = Math.min((Math.min(e.getTime(), dayEnd) - dayStart) / 60000, gEnd);
+    return { top: (sm - gStart) * PPM, h: Math.max((em - sm) * PPM, 18), visible: em > sm };
+  };
+  const evs: Ev[] = [];
+  const allDay: any[] = [];
+  for (const b of blocks as any[]) {
+    const s = new Date(b.starts_at), e = new Date(b.ends_at);
+    if (!(s.getTime() < dayEnd && e.getTime() > dayStart)) continue;
+    if (b.all_day || (s.getTime() <= dayStart && e.getTime() >= dayEnd)) { allDay.push(b); continue; }
+    const p = place(s, e);
+    if (p.visible) evs.push({ kind: 'block', top: p.top, h: p.h, data: b, label: b.title || 'Blocked', sub: `${fmtTime(s)} to ${fmtTime(e)}`, cls: 'ev-block' });
+  }
+  for (const a of appts as any[]) {
+    const s = new Date(a.starts_at), e = new Date(a.ends_at);
+    if (!(s.getTime() < dayEnd && e.getTime() > dayStart)) continue;
+    const p = place(s, e);
+    if (p.visible) evs.push({ kind: 'appt', top: p.top, h: p.h, data: a, label: a.client_name, sub: `${fmtTime(s)} · ${a.service_name}`, cls: `ev-appt ev-${a.status}` });
+  }
+  for (const g of gb.busy) {
+    if (ownRanges.some((r) => Math.abs(r.s - g.start.getTime()) < 60000 && Math.abs(r.e - g.end.getTime()) < 60000)) continue;
+    if (!(g.start.getTime() < dayEnd && g.end.getTime() > dayStart)) continue;
+    const p = place(g.start, g.end);
+    if (p.visible) evs.push({ kind: 'gbusy', top: p.top, h: p.h, data: null, label: 'Google busy', sub: `${fmtTime(g.start)} to ${fmtTime(g.end)}`, cls: 'ev-gbusy' });
+  }
+  const h = hrs[dowOf(k)];
+  const closed: { top: number; h: number }[] = [];
+  if (!h) closed.push({ top: 0, h: height });
+  else {
+    if (h.open * 60 > gStart) closed.push({ top: 0, h: (h.open * 60 - gStart) * PPM });
+    if (h.close * 60 < gEnd) closed.push({ top: (h.close * 60 - gStart) * PPM, h: (gEnd - h.close * 60) * PPM });
+  }
+  return { key: k, evs, allDay, closed, isToday: k === today };
+});
+const hoursLbl = Array.from({ length: (gEnd - gStart) / 60 }, (_, i) => gStart + i * 60);
+const prev = addDays(start, -n);
+const next = addDays(start, n);
+const title = view === 'week' ? `${fmtKey(keys[0], { month: 'short', day: 'numeric' })} to ${fmtKey(keys[6], { month: 'short', day: 'numeric', year: 'numeric' })}` : fmtKey(date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+const nowP = nyParts(new Date());
+const nowTop = nowP.minutes >= gStart && nowP.minutes <= gEnd ? (nowP.minutes - gStart) * PPM : null;
+const ser = (o: unknown) => JSON.stringify(o);
+const blockJson = (b: any) => {
+  const s = nyParts(new Date(b.starts_at));
+  const e = nyParts(new Date(b.all_day ? new Date(b.ends_at).getTime() - 60000 : b.ends_at));
+  return ser({ id: b.id, allDay: b.all_day, startDate: s.dateKey, endDate: e.dateKey, startTime: hhmm(s.minutes), endTime: hhmm(nyParts(new Date(b.ends_at)).minutes), title: b.title, notes: b.notes, google: Boolean(b.google_event_id) });
+};
+const apptJson = (a: any) => ser({ id: a.id, client: a.client_name, clientId: a.client_id, phone: fmtPhone(a.client_phone), email: a.client_email, service: a.service_name, when: `${fmtKey(nyParts(new Date(a.starts_at)).dateKey, { weekday: 'short', month: 'short', day: 'numeric' })}, ${fmtTime(a.starts_at)} to ${fmtTime(a.ends_at)}`, price: money(a.price_cents), status: a.status, notes: a.notes, square: Boolean(a.square_booking_id), squareStatus: a.square_status, past: new Date(a.ends_at) < new Date() });
+---
+
+<AdminLayout title="Calendar" active="calendar">
+  <div class="admin-top">
+    <div>
+      <p class="kicker">{sqc ? 'Square appointments + your blocks' : 'Appointments + your blocks'}</p>
+      <h1 class="admin-title">{title}</h1>
+    </div>
+    <div class="row">
+      <nav class="tabs">
+        <a href={`?view=day&date=${date}`} class={view === 'day' ? 'is-cur' : ''}>Day</a>
+        <a href={`?view=week&date=${date}`} class={view === 'week' ? 'is-cur' : ''}>Week</a>
+      </nav>
+      <a class="btn btn-xs btn-ghost" href={`?view=${view}&date=${prev}`} aria-label="Previous">←</a>
+      <a class="btn btn-xs btn-ghost" href={`?view=${view}&date=${today}`}>Today</a>
+      <a class="btn btn-xs btn-ghost" href={`?view=${view}&date=${next}`} aria-label="Next">→</a>
+      <button class="btn btn-sm" type="button" id="new-block">Block time</button>
+    </div>
+  </div>
+
+  <p class="muted-s" style="margin-bottom:.9rem">Tap an empty spot to block it. Tap an appointment for details. Blocks hide those times from online booking right away.</p>
+
+  <div class="legend row" style="margin-bottom:.9rem">
+    <span class="pill inquiry">Inquiry</span><span class="pill confirmed">Confirmed</span><span class="pill completed">Completed</span><span class="pill no_show">No show</span><span class="pill lg-block">Blocked</span>{gconn && <span class="pill lg-g">Google busy</span>}
+  </div>
+
+  <div class={`cal card cal-${view}`} data-explicit={explicitView ? '1' : '0'} style={`--ppm:${PPM}`}>
+    <div class="cal-scroll">
+      <div class="cal-grid" style={`--cols:${n}`}>
+        <div class="cal-corner"></div>
+        {cols.map((c) => (
+          <a class={`cal-dayhead ${c.isToday ? 'is-today' : ''}`} href={`?view=day&date=${c.key}`}>
+            <span>{fmtKey(c.key, { weekday: 'short' })}</span>
+            <b>{Number(c.key.slice(8))}</b>
+          </a>
+        ))}
+        <div class="cal-corner cal-ad-lbl">All day</div>
+        {cols.map((c) => (
+          <div class="cal-allday" data-date={c.key}>
+            {c.allDay.map((b) => <button type="button" class="ev ev-block ev-ad" data-block={blockJson(b)}>{b.title || 'Blocked'}</button>)}
+          </div>
+        ))}
+        <div class="cal-times" style={`height:${height}px`}>
+          {hoursLbl.map((m) => <span style={`top:${(m - gStart) * PPM}px`}>{m % 720 === 0 ? 12 : Math.floor(m / 60) % 12}{m < 720 ? 'a' : 'p'}</span>)}
+        </div>
+        {cols.map((c) => (
+          <div class={`cal-col ${c.isToday ? 'is-today' : ''}`} data-date={c.key} data-gstart={gStart} style={`height:${height}px`}>
+            {c.closed.map((z) => <div class="cal-closed" style={`top:${z.top}px;height:${z.h}px`}></div>)}
+            {c.isToday && nowTop != null && <div class="cal-now" style={`top:${nowTop}px`}></div>}
+            {c.evs.map((e) =>
+              e.kind === 'appt' ? (
+                <button type="button" class={`ev ${e.cls}`} style={`top:${e.top}px;height:${e.h}px`} data-appt={apptJson(e.data)}>
+                  <b>{e.label}</b><span>{e.sub}</span>
+                </button>
+              ) : e.kind === 'block' ? (
+                <button type="button" class={`ev ${e.cls}`} style={`top:${e.top}px;height:${e.h}px`} data-block={blockJson(e.data)}>
+                  <b>{e.label}</b><span>{e.sub}</span>
+                </button>
+              ) : (
+                <div class={`ev ${e.cls}`} style={`top:${e.top}px;height:${e.h}px`} title={e.sub}><span>{e.label}</span></div>
+              )
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <section class="card" style="margin-top:1.25rem">
+    <h2 class="card-title">Upcoming blocks <button class="btn btn-xs btn-ghost" type="button" id="new-block-2">Add</button></h2>
+    {upcomingBlocks.length ? (
+      <div class="list">
+        {upcomingBlocks.map((b: any) => {
+          const s = new Date(b.starts_at);
+          const e = new Date(b.ends_at);
+          const lastDay = nyParts(new Date(e.getTime() - 60000)).dateKey;
+          const sk = nyParts(s).dateKey;
+          const when = b.all_day
+            ? sk === lastDay ? `${fmtKey(sk, { weekday: 'short', month: 'short', day: 'numeric' })}, all day` : `${fmtKey(sk, { month: 'short', day: 'numeric' })} to ${fmtKey(lastDay, { month: 'short', day: 'numeric' })}, all day`
+            : `${fmtKey(sk, { weekday: 'short', month: 'short', day: 'numeric' })}, ${fmtTime(s)} to ${fmtTime(e)}`;
+          return (
+            <div class="item">
+              <div class="item-main">
+                <span class="item-name">{b.title || 'Blocked'}{b.google_event_id && <> <span class="pill">On Google</span></>}</span>
+                <span class="muted-s">{when}{b.notes ? ` · ${b.notes}` : ''}</span>
+              </div>
+              <div class="item-actions">
+                <button class="btn btn-xs btn-ghost" type="button" data-block={blockJson(b)}>Edit</button>
+                <button class="btn btn-xs btn-danger" data-api={`/api/admin/blocks/${b.id}`} data-method="DELETE" data-confirm="Delete this block? Those times open up for booking again." data-done="Block removed">Delete</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    ) : <p class="empty">No upcoming blocks.</p>}
+    {sqc && <p class="note" style="margin-top:1rem">Blocks here hide times on parkermodernclassichair.com. Square's API cannot create blocked time, so if your Square booking page is also live, add the same time off in the Square app.</p>}
+  </section>
+
+  <dialog class="dlg" id="block-dlg">
+    <form class="dlg-in" id="block-form">
+      <div class="dlg-head"><h2 id="block-h">Block time</h2><button class="dlg-x" type="button" data-close aria-label="Close">×</button></div>
+      <div class="chips" id="chips">
+        {['Lunch', 'Errand', 'Personal', 'Vacation', 'Closed'].map((c) => <button type="button" class="chip" data-chip={c}>{c}</button>)}
+      </div>
+      <label class="f"><span>Label</span><input name="title" maxlength="80" placeholder="Lunch, vacation, errand" /></label>
+      <label class="check"><input type="checkbox" name="allDay" /> All day</label>
+      <div class="form-grid">
+        <label class="f"><span>Start date</span><input name="startDate" type="date" required /></label>
+        <label class="f"><span>End date</span><input name="endDate" type="date" required /></label>
+      </div>
+      <div class="form-grid" id="time-row">
+        <label class="f"><span>From</span><input name="startTime" type="time" step="900" /></label>
+        <label class="f"><span>To</span><input name="endTime" type="time" step="900" /></label>
+      </div>
+      <label class="f"><span>Notes</span><textarea name="notes" rows="2"></textarea></label>
+      {gconn && <label class="check"><input type="checkbox" name="syncGoogle" checked /> Also add a busy event to Google Calendar</label>}
+      <p class="err" hidden></p>
+      <div class="row">
+        <button class="btn" type="submit" id="block-save">Save block</button>
+        <button class="btn btn-danger" type="button" id="block-del" hidden>Delete</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="dlg" id="appt-dlg">
+    <div class="dlg-in">
+      <div class="dlg-head"><h2 id="ap-name"></h2><button class="dlg-x" type="button" data-close aria-label="Close">×</button></div>
+      <dl class="kv" id="ap-kv"></dl>
+      <div class="row" id="ap-actions"></div>
+      <a class="link muted-s" id="ap-client" href="#">Open client record</a>
+    </div>
+  </dialog>
+</AdminLayout>
+
+<script>
+  import { api, toast, wireActions } from '../../scripts/admin';
+
+  const cal = document.querySelector<HTMLElement>('.cal')!;
+  if (cal.dataset.explicit === '0' && window.innerWidth < 700 && !location.search.includes('view=')) {
+    const u = new URL(location.href);
+    u.searchParams.set('view', 'day');
+    location.replace(u);
+  }
+
+  const bd = document.getElementById('block-dlg') as HTMLDialogElement;
+  const bf = document.getElementById('block-form') as HTMLFormElement;
+  const del = document.getElementById('block-del') as HTMLButtonElement;
+  const timeRow = document.getElementById('time-row')!;
+  const err = bf.querySelector('.err') as HTMLElement;
+  let editing: string | null = null;
+  const el = (n: string) => bf.elements.namedItem(n) as HTMLInputElement;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const hm = (m: number) => `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
+  const todayNY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
+
+  function syncAllDay() {
+    timeRow.hidden = el('allDay').checked;
+  }
+  el('allDay').addEventListener('change', syncAllDay);
+  el('startDate').addEventListener('change', () => {
+    if (!el('endDate').value || el('endDate').value < el('startDate').value) el('endDate').value = el('startDate').value;
+  });
+  document.querySelectorAll<HTMLButtonElement>('[data-chip]').forEach((c) =>
+    c.addEventListener('click', () => {
+      el('title').value = c.dataset.chip!;
+      if (c.dataset.chip === 'Vacation' || c.dataset.chip === 'Closed') { el('allDay').checked = true; syncAllDay(); }
+    })
+  );
+
+  type B = { id?: string; allDay?: boolean; startDate: string; endDate?: string; startTime?: string; endTime?: string; title?: string; notes?: string };
+  function openBlock(b: B) {
+    editing = b.id || null;
+    err.hidden = true;
+    (document.getElementById('block-h')!).textContent = editing ? 'Edit block' : 'Block time';
+    el('title').value = b.title || '';
+    el('notes').value = b.notes || '';
+    el('allDay').checked = Boolean(b.allDay);
+    el('startDate').value = b.startDate;
+    el('endDate').value = b.endDate || b.startDate;
+    el('startTime').value = b.startTime || '12:00';
+    el('endTime').value = b.endTime || '13:00';
+    del.hidden = !editing;
+    syncAllDay();
+    bd.showModal();
+  }
+
+  bf.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const sg = bf.elements.namedItem('syncGoogle') as HTMLInputElement | null;
+    const body = {
+      title: el('title').value, notes: el('notes').value, allDay: el('allDay').checked,
+      startDate: el('startDate').value, endDate: el('endDate').value, startTime: el('startTime').value, endTime: el('endTime').value,
+      syncGoogle: sg ? sg.checked : false,
+    };
+    try {
+      await api(editing ? `/api/admin/blocks/${editing}` : '/api/admin/blocks', editing ? 'PATCH' : 'POST', body);
+      toast(editing ? 'Block updated' : 'Time blocked');
+      setTimeout(() => location.reload(), 350);
+    } catch (x) {
+      err.textContent = (x as Error).message;
+      err.hidden = false;
+    }
+  });
+  del.addEventListener('click', async () => {
+    if (!editing || !confirm('Delete this block? Those times open up for booking again.')) return;
+    try {
+      await api(`/api/admin/blocks/${editing}`, 'DELETE');
+      toast('Block removed');
+      setTimeout(() => location.reload(), 350);
+    } catch (x) {
+      toast((x as Error).message, true);
+    }
+  });
+
+  ['new-block', 'new-block-2'].forEach((id) => document.getElementById(id)?.addEventListener('click', () => openBlock({ startDate: todayNY })));
+  if (new URLSearchParams(location.search).get('block') === '1') openBlock({ startDate: todayNY });
+
+  // Click empty space in a day column to block from that half hour.
+  document.querySelectorAll<HTMLElement>('.cal-col').forEach((col) =>
+    col.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.ev')) return;
+      const ppm = Number(getComputedStyle(cal).getPropertyValue('--ppm')) || 1.4;
+      const y = e.clientY - col.getBoundingClientRect().top;
+      const m = Math.floor((Number(col.dataset.gstart) + y / ppm) / 30) * 30;
+      openBlock({ startDate: col.dataset.date!, startTime: hm(m), endTime: hm(Math.min(m + 60, 23 * 60 + 45)) });
+    })
+  );
+  document.querySelectorAll<HTMLElement>('.cal-allday').forEach((c) =>
+    c.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.ev')) return;
+      openBlock({ startDate: c.dataset.date!, allDay: true });
+    })
+  );
+  document.querySelectorAll<HTMLElement>('[data-block]').forEach((b) =>
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openBlock(JSON.parse(b.dataset.block!));
+    })
+  );
+
+  // Appointment details + actions.
+  const ad = document.getElementById('appt-dlg') as HTMLDialogElement;
+  const esc = (s: string) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+  document.querySelectorAll<HTMLElement>('[data-appt]').forEach((b) =>
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const a = JSON.parse(b.dataset.appt!);
+      document.getElementById('ap-name')!.textContent = a.client;
+      document.getElementById('ap-kv')!.innerHTML = [
+        ['When', a.when], ['Service', a.service], ['Price', a.price],
+        ['Status', `<span class="pill ${a.status}">${a.status.replace('_', ' ')}</span>${a.square ? ' <span class="pill square">Square</span>' : ''}`],
+        ['Phone', a.phone ? `<a class="link" href="tel:${esc(a.phone)}">${esc(a.phone)}</a>` : 'None'],
+        ['Email', a.email ? esc(a.email) : 'None'], ['Notes', a.notes ? esc(a.notes) : 'None'],
+      ].map(([k, v]) => `<dt>${k}</dt><dd>${k === 'Status' || k === 'Phone' || k === 'Email' || k === 'Notes' ? v : esc(v)}</dd>`).join('');
+      const url = `/api/admin/appointments/${a.id}`;
+      const btn = (label: string, body: object, cls = '', conf = '') =>
+        `<button class="btn btn-xs ${cls}" data-api="${url}" data-method="PATCH" data-body='${JSON.stringify(body)}' ${conf ? `data-confirm="${esc(conf)}"` : ''}>${label}</button>`;
+      const acts: string[] = [];
+      if (a.status === 'inquiry') {
+        if (a.square && a.squareStatus === 'PENDING') acts.push(`<span class="muted-s">Pending in Square. Accept it in the Square app.</span>`);
+        else acts.push(btn('Confirm', { status: 'confirmed' }));
+        acts.push(btn('Decline', { status: 'cancelled' }, 'btn-danger', 'Decline this request?'));
+      }
+      if (a.status === 'confirmed') {
+        acts.push(btn(a.past ? 'Completed' : 'Mark done', { status: 'completed' }));
+        acts.push(btn('No show', { status: 'no_show' }, 'btn-ghost', 'Mark as a no show?'));
+        if (!a.past) acts.push(btn('Cancel', { status: 'cancelled' }, 'btn-danger', 'Cancel this appointment? The client gets an email.'));
+      }
+      if (a.status === 'completed' || a.status === 'no_show') acts.push(btn('Undo', { status: 'confirmed', notify: false }, 'btn-ghost'));
+      const box = document.getElementById('ap-actions')!;
+      box.innerHTML = acts.join('');
+      wireActions(box);
+      (document.getElementById('ap-client') as HTMLAnchorElement).href = `/admin/clients/${a.clientId}`;
+      ad.showModal();
+    })
+  );
+
+  document.querySelectorAll<HTMLDialogElement>('dialog').forEach((d) => {
+    d.querySelector('[data-close]')?.addEventListener('click', () => d.close());
+    d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+  });
+</script>
+
+<style>
+  .lg-block { border-color: #7a6a52; color: var(--cream-2); background: repeating-linear-gradient(135deg, rgba(239,230,210,.08) 0 6px, transparent 6px 12px); }
+  .lg-g { border-color: #5f7fa6; color: #a8c2e2; }
+  .cal { padding: 0; overflow: hidden; }
+  .cal-scroll { overflow-x: auto; }
+  .cal-grid { display: grid; grid-template-columns: 52px repeat(var(--cols), minmax(118px, 1fr)); min-width: 100%; }
+  .cal-day .cal-grid { grid-template-columns: 52px minmax(0, 1fr); }
+  .cal-corner { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .cal-ad-lbl { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); display: grid; place-items: center; }
+  .cal-dayhead { display: grid; justify-items: center; padding: 0.6rem 0.25rem; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .cal-dayhead span { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mute); }
+  .cal-dayhead b { font-family: var(--display); font-weight: 400; font-size: 1.7rem; line-height: 1; }
+  .cal-dayhead.is-today b { color: var(--brass); }
+  .cal-dayhead:hover { background: var(--char-2); }
+  .cal-allday { min-height: 38px; padding: 4px; display: grid; gap: 3px; align-content: start; border-bottom: 1px solid var(--line-2); border-right: 1px solid var(--line); cursor: copy; }
+  .cal-times { position: relative; border-right: 1px solid var(--line); }
+  .cal-times span { position: absolute; right: 6px; transform: translateY(-50%); font-size: 0.62rem; color: var(--mute); letter-spacing: 0.06em; }
+  .cal-times span:first-child { transform: none; }
+  .cal-col {
+    position: relative; border-right: 1px solid var(--line); cursor: copy;
+    background-image: repeating-linear-gradient(180deg, var(--line) 0 1px, transparent 1px calc(60px * var(--ppm))),
+      repeating-linear-gradient(180deg, transparent 0 calc(30px * var(--ppm)), rgba(239,230,210,.04) calc(30px * var(--ppm)) calc(30px * var(--ppm) + 1px), transparent calc(30px * var(--ppm) + 1px) calc(60px * var(--ppm)));
+  }
+  .cal-col.is-today { background-color: rgba(201, 162, 90, 0.035); }
+  .cal-col:hover { background-color: rgba(239, 230, 210, 0.02); }
+  .cal-closed { position: absolute; left: 0; right: 0; background: repeating-linear-gradient(135deg, rgba(0,0,0,.5) 0 8px, rgba(0,0,0,.38) 8px 16px); pointer-events: none; }
+  .cal-now { position: absolute; left: 0; right: 0; height: 2px; background: #e07a5f; z-index: 4; pointer-events: none; }
+  .cal-now::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #e07a5f; }
+  .ev { position: absolute; left: 3px; right: 3px; z-index: 2; overflow: hidden; display: grid; align-content: start; gap: 1px; padding: 3px 6px; text-align: left; font: inherit; font-size: 0.74rem; line-height: 1.25; border: 1px solid var(--line-2); border-left-width: 3px; cursor: pointer; color: var(--cream); }
+  .ev b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev span { color: var(--cream-2); font-size: 0.68rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev:hover { filter: brightness(1.15); z-index: 3; }
+  .ev-ad { position: static; min-height: 24px; }
+  .ev-appt { background: #2a2418; border-left-color: var(--brass); }
+  .ev-inquiry { background: #2e2512; border-color: #d9a441; border-style: dashed; border-left-style: solid; }
+  .ev-confirmed { background: #3a2f1a; border-left-color: var(--brass-hi); }
+  .ev-completed { background: #1d2a1c; border-color: #4f6e4b; border-left-color: #8fc488; }
+  .ev-no_show { background: #2c1b16; border-color: #7a4434; border-left-color: #e79a80; }
+  .ev-block { background: repeating-linear-gradient(135deg, #23201c 0 7px, #1a1816 7px 14px); border-color: #5c5244; border-left-color: #a39478; }
+  .ev-gbusy { left: auto; right: 3px; width: 34%; cursor: default; background: repeating-linear-gradient(135deg, rgba(95,127,166,.28) 0 5px, rgba(95,127,166,.1) 5px 10px); border-color: rgba(95,127,166,.6); z-index: 1; }
+  .ev-gbusy span { color: #a8c2e2; }
+  .cal-day .ev { font-size: 0.85rem; }
+  .cal-day .ev span { font-size: 0.78rem; }
+</style>

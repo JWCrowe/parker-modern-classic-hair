@@ -66,3 +66,8 @@
 ## Sister sites (same docs pattern)
 
 jeffcrowecre, property-landing-pages (PLP), c21theavenues office site. New stylist sites clone this repo + this `docs/` pack ([ROADMAP.md](ROADMAP.md)).
+
+## Legal pages
+
+- `/privacy` and `/terms` (prerendered, `src/components/LegalPage.astro`); `/privacy-policy` and `/terms-of-service` redirect there. Linked in the footer and under the Book form submit.
+- If data handling changes (new analytics, new processor, SMS reminders), update `/privacy` and its Last updated date.

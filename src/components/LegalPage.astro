@@ -1,0 +1,62 @@
+---
+// Shared shell for /privacy and /terms: same header, footer, and dark brass look as the rest of the site.
+import Layout from '../layouts/Layout.astro';
+import Header from './Header.astro';
+import Footer from './Footer.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  kicker: string;
+  lead: string;
+  accent: string;
+  updated: string;
+}
+const { title, description, kicker, lead, accent, updated } = Astro.props;
+---
+
+<Layout title={title} description={description}>
+  <Header />
+  <main class="legal">
+    <div class="wrap">
+      <header class="legal-head">
+        <p class="kicker">{kicker}</p>
+        <h1 class="display legal-title">{lead} <span class="serif-i brass">{accent}</span></h1>
+        <p class="legal-updated">Last updated {updated}</p>
+      </header>
+      <article class="legal-body">
+        <slot />
+      </article>
+    </div>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .legal { padding: calc(var(--header-h) + clamp(3rem, 8vw, 6rem)) 0 clamp(4rem, 9vw, 7rem); }
+  .legal-head { max-width: 52rem; border-bottom: 1px solid var(--line); padding-bottom: 2rem; margin-bottom: 2.5rem; }
+  .legal-title { font-size: clamp(3rem, 9vw, 6.5rem); margin-top: 1rem; }
+  .legal-title .serif-i { font-size: 1.04em; }
+  .legal-updated { margin-top: 1.25rem; font-size: 0.75rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mute); }
+  .legal-body { max-width: 46rem; color: var(--cream-2); font-size: 1rem; line-height: 1.75; }
+  .legal-body :global(h2) {
+    font-family: var(--display);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    color: var(--cream);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.05;
+    margin: 2.75rem 0 0.9rem;
+  }
+  .legal-body :global(h2:first-child) { margin-top: 0; }
+  .legal-body :global(p) { margin: 0 0 1rem; }
+  .legal-body :global(ul) { margin: 0 0 1.1rem 1.2rem; display: grid; gap: 0.45rem; }
+  .legal-body :global(li::marker) { color: var(--brass); }
+  .legal-body :global(strong) { color: var(--cream); font-weight: 600; }
+  .legal-body :global(a) { color: var(--brass); border-bottom: 1px solid var(--line-2); transition: color 0.2s, border-color 0.2s; word-break: break-word; }
+  .legal-body :global(a:hover) { color: var(--brass-hi); border-color: var(--brass-hi); }
+  .legal-body :global(.legal-card) { border: 1px solid var(--line-2); background: var(--char); padding: 1.25rem 1.4rem; margin: 0.5rem 0 1.25rem; }
+  .legal-body :global(.legal-card p) { margin: 0; }
+  .legal-body :global(.legal-note) { font-size: 0.88rem; color: var(--mute); border-top: 1px solid var(--line); padding-top: 1.5rem; margin-top: 3rem; }
+</style>

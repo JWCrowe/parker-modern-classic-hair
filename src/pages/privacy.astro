@@ -1,0 +1,88 @@
+---
+export const prerender = true;
+import LegalPage from '../components/LegalPage.astro';
+import { business } from '../data/site';
+const updated = 'November 3, 2026';
+---
+
+<LegalPage
+  title="Privacy Policy | Parker Modern Classic Hair, Calhoun GA"
+  description="How Parker Modern Classic Hair in Calhoun, Georgia collects, uses, and protects the information you share when you book or contact Ben."
+  kicker="Privacy Policy"
+  lead="Your info,"
+  accent="kept simple."
+  updated={updated}
+>
+  <p>{business.name} ("Parker," "we," "us") is a barbershop run by {business.barber} at {business.street}, {business.city}, Georgia {business.zip}. This policy explains what information we collect through this website (parkermodernclassichair.com and parker-modern-classic-hair.vercel.app), how we use it, and the choices you have. We keep it short because we collect very little.</p>
+
+  <h2>What we collect</h2>
+  <p><strong>When you book or request an appointment</strong>, we collect:</p>
+  <ul>
+    <li>Your name and phone number (required, so Ben can confirm or reach you)</li>
+    <li>Your email address (optional, used for booking updates)</li>
+    <li>The service, date, and time you pick</li>
+    <li>Any notes you choose to add, such as fade height or beard shape</li>
+  </ul>
+  <p><strong>When you call, text, or email us</strong>, we receive whatever you send, along with your phone number or email address.</p>
+  <p><strong>Basic technical data.</strong> Like nearly every website, our hosting provider automatically logs standard request details such as IP address, browser type, and the pages requested. These logs are used for security and to keep the site running, not to build a profile of you.</p>
+  <p>We do not ask for, and you should not send us, Social Security numbers, health records, or payment card numbers through the website.</p>
+
+  <h2>Cookies</h2>
+  <p>The public pages of this site do not use advertising cookies, tracking pixels, or third party analytics. The only cookies we set are strictly necessary ones for the private staff admin area (to keep an authorized user signed in). Our pages load fonts from Google Fonts and some photos from Unsplash, so those services receive your IP address and browser details when your browser downloads those files, as described in their own policies.</p>
+
+  <h2>How we use your information</h2>
+  <ul>
+    <li>To schedule, confirm, change, or cancel your appointment</li>
+    <li>To contact you about your appointment by phone, text, or email</li>
+    <li>To keep simple client records (such as past visits and service notes) so Ben can give you a consistent cut</li>
+    <li>To answer your questions and requests</li>
+    <li>To keep the site secure and prevent spam or abuse</li>
+    <li>To meet legal, tax, and recordkeeping obligations</li>
+  </ul>
+  <p>We do not sell your personal information, and we do not share it with anyone for their own marketing.</p>
+
+  <h2>Square and payments</h2>
+  <p>We use <strong>Square</strong> for appointments and payments. When Square booking is active, the details you enter are sent to Square to create your booking, and Square may send you its own confirmations or reminders. Card payments are processed by Square, whether in the shop or online. We do not receive or store your full card number. Square handles your information under its own privacy notice: <a href="https://squareup.com/us/en/legal/general/privacy" target="_blank" rel="noopener">squareup.com/legal/general/privacy</a>.</p>
+
+  <h2>Other service providers</h2>
+  <p>A few trusted providers help us run the site. They process information only to provide their service to us:</p>
+  <ul>
+    <li><strong>Vercel</strong>: website hosting</li>
+    <li><strong>Neon</strong>: secure database where booking and client records are stored</li>
+    <li><strong>Resend</strong>: delivery of booking emails</li>
+    <li><strong>Square</strong>: appointments and payment processing</li>
+  </ul>
+  <p>We may also share information if the law requires it, to protect the rights or safety of our clients, Ben, or the shop, or as part of a sale or transfer of the business.</p>
+
+  <h2>How long we keep it</h2>
+  <p>We keep booking and client records while you are a client and for a reasonable time after, so we can look up past services and meet tax and business records needs. Ask us any time and we will delete what we no longer need to keep.</p>
+
+  <h2>How we protect it</h2>
+  <p>The site uses encrypted connections (HTTPS), client records sit behind a password protected admin area, and access is limited to the people who run the shop and maintain the site. No system is perfectly secure, but we take reasonable steps to protect your information, and we will notify you if a breach affecting your information occurs as required by Georgia law.</p>
+
+  <h2>Your choices</h2>
+  <ul>
+    <li><strong>See, fix, or delete</strong> the information we hold about you</li>
+    <li><strong>Stop messages</strong> about anything other than an appointment you booked</li>
+    <li><strong>Leave email out</strong> of your booking (it is optional)</li>
+  </ul>
+  <p>Just contact us using the details below. We will respond within a reasonable time, usually a few business days, and may need to confirm it is really you first.</p>
+
+  <h2>Children</h2>
+  <p>This website is meant for adults and for parents or guardians booking for their kids. We do not knowingly collect information online from children under 13. A parent or guardian should make bookings for anyone under 18. If you believe a child sent us information, contact us and we will delete it.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If we change this policy, we will post the new version here and update the date at the top. Changes apply from the date they are posted.</p>
+
+  <h2>Contact us</h2>
+  <div class="legal-card">
+    <p><strong>{business.name}</strong><br />
+      {business.street}<br />
+      {business.city}, {business.region} {business.zip}<br />
+      Phone: <a href={business.phoneHref}>{business.phone}</a><br />
+      Email: <a href={`mailto:${business.email}?subject=Privacy%20request`}>{business.email}</a></p>
+  </div>
+  <p>See also our <a href="/terms">Terms of Service</a>.</p>
+
+  <p class="legal-note">This policy is written in plain English for a small local barbershop. It is a general description of our practices and is not legal advice.</p>
+</LegalPage>

@@ -92,6 +92,7 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
               <p id="form-error" class="form-error" role="alert" hidden></p>
               <button type="submit" id="submit-btn" class="btn btn-block">Request This Time <span class="arrow">→</span></button>
               <p class="form-fine">Ben gets your request right away. You'll see the status on the next screen.</p>
+              <p class="form-fine form-legal">By booking you agree to our <a href="/terms">Terms</a>. We use your details only to handle your appointment: see our <a href="/privacy">Privacy Policy</a>.</p>
             </form>
           </div>
 
@@ -549,6 +550,9 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
   .form-error { color: #e79a80; font-size: 0.9rem; }
   .form-error :global(a) { color: var(--brass-hi); text-decoration: underline; }
   .form-fine { font-size: 0.78rem; color: var(--mute); text-align: center; }
+  .form-legal { margin-top: -0.5rem; font-size: 0.72rem; }
+  .form-legal a { color: var(--cream-2); text-decoration: underline; text-underline-offset: 2px; }
+  .form-legal a:hover { color: var(--brass); }
   .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
   .done-status { margin: -0.4rem 0 1rem; }
   .status-pill { display: inline-block; padding: 0.35rem 0.8rem; border: 1px solid #d9a441; color: #f0c56b; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; }

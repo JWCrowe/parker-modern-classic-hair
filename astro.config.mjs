@@ -8,6 +8,10 @@ export default defineConfig({
   // or Astro checkOrigin blocks admin form POSTs (Sign out, etc.).
   site: 'https://parker-modern-classic-hair.vercel.app',
   output: 'server',
+  redirects: {
+    '/privacy-policy': '/privacy',
+    '/terms-of-service': '/terms',
+  },
   adapter: vercel({
     // Ensure Node.js serverless (not Edge) so Neon + bcryptjs work.
     maxDuration: 30,

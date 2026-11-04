@@ -1,0 +1,76 @@
+---
+export const prerender = true;
+import LegalPage from '../components/LegalPage.astro';
+import { business } from '../data/site';
+const updated = 'November 3, 2026';
+---
+
+<LegalPage
+  title="Terms of Service | Parker Modern Classic Hair, Calhoun GA"
+  description="The terms for booking with and using the website of Parker Modern Classic Hair in Calhoun, Georgia: appointments, cancellations, site use, and Georgia law."
+  kicker="Terms of Service"
+  lead="The house"
+  accent="rules."
+  updated={updated}
+>
+  <p>These terms apply to this website (parkermodernclassichair.com and parker-modern-classic-hair.vercel.app) and to appointments booked through it with {business.name}, a barbershop run by {business.barber} at {business.street}, {business.city}, Georgia {business.zip} ("Parker," "we," "us"). By using the site or booking an appointment, you agree to these terms. If you do not agree, please do not use the site.</p>
+
+  <h2>Booking appointments</h2>
+  <ul>
+    <li>Give accurate contact details so Ben can confirm or reach you. Book only for yourself, or for someone you are authorized to book for (such as your child).</li>
+    <li>Depending on how online booking is set up, your booking is either confirmed right away through Square or sent to Ben as a request. A request is not a confirmed appointment until Ben confirms it. The status screen and any confirmation message will tell you which one you have.</li>
+    <li>Times shown online are our best current availability. In rare cases (illness, emergency, or a scheduling error), Ben may need to move or cancel an appointment. If that happens, we will contact you as soon as we can to reschedule.</li>
+    <li>A parent or guardian should book for anyone under 18 and should be reachable during the visit.</li>
+  </ul>
+
+  <h2>Cancellations, lateness, and no-shows</h2>
+  <ul>
+    <li>If you need to cancel or reschedule, please call or text {business.phone} as early as you can, ideally at least 24 hours ahead. That lets someone else take the chair.</li>
+    <li>If you are running late, let us know. Arriving late may mean a shorter service, or we may need to reschedule so the next client is not kept waiting.</li>
+    <li>Repeated no-shows or late cancellations may mean we ask for a deposit or decline future online bookings. If any cancellation or no-show fee applies, it will be shown to you before you confirm your booking.</li>
+  </ul>
+
+  <h2>Services, prices, and payment</h2>
+  <ul>
+    <li>Service descriptions, prices, and durations on the site come from our booking system and may change. The price shown when you book is the price we honor for that appointment, unless you change services in the chair.</li>
+    <li>Payment is due when your service is complete. Payments are processed by Square under Square's own terms.</li>
+    <li>Results depend on hair type, growth, and condition. Tell Ben about any skin or scalp sensitivity, allergies, or medical conditions before your service. If you are not happy with a cut, let us know within a few days and we will do our best to make it right.</li>
+    <li>We may refuse or stop a service if a client is abusive, unsafe, or has a condition that makes the service unsafe to perform.</li>
+  </ul>
+
+  <h2>Using this website</h2>
+  <p>You may use this site to learn about the shop and to book or request appointments. Please do not:</p>
+  <ul>
+    <li>Submit false bookings, spam, or someone else's information without permission</li>
+    <li>Try to access the private admin area or any data you are not authorized to see</li>
+    <li>Interfere with the site, attempt to break its security, or scrape it with automated tools</li>
+    <li>Copy our logo, photos, or text for commercial use without permission</li>
+  </ul>
+  <p>The Parker name, logo, and site content belong to {business.name} or are used with permission. Links to outside sites (such as Square or Google Maps) are provided for convenience, and those sites have their own terms.</p>
+
+  <h2>Privacy</h2>
+  <p>How we handle the information you share is covered in our <a href="/privacy">Privacy Policy</a>.</p>
+
+  <h2>Disclaimers</h2>
+  <p>We work to keep the site accurate and available, but it is provided "as is" and "as available." Hours, availability, and prices can change, and the site may sometimes be down for maintenance or outside issues. If something on the site looks wrong, call or text us to confirm.</p>
+
+  <h2>Limitation of liability</h2>
+  <p>To the fullest extent allowed by Georgia law, {business.name} and Ben are not liable for indirect, incidental, or consequential damages (such as lost time or lost income) arising from your use of the website or an appointment being moved or canceled. For any other claim related to a service, our total liability is limited to the amount you paid for that service. Nothing in these terms limits liability that cannot be limited under Georgia law, such as liability for gross negligence or willful misconduct.</p>
+
+  <h2>Governing law</h2>
+  <p>These terms are governed by the laws of the State of Georgia, without regard to conflict of law rules. Any dispute that cannot be worked out directly will be handled in the state or magistrate courts located in Gordon County, Georgia, and you and we agree to that venue. Before filing anything, please contact us first. Most problems can be solved with a phone call.</p>
+
+  <h2>Changes to these terms</h2>
+  <p>We may update these terms from time to time. The new version will be posted here with an updated date, and it applies to bookings made after it is posted.</p>
+
+  <h2>Contact us</h2>
+  <div class="legal-card">
+    <p><strong>{business.name}</strong><br />
+      {business.street}<br />
+      {business.city}, {business.region} {business.zip}<br />
+      Phone: <a href={business.phoneHref}>{business.phone}</a><br />
+      Email: <a href={`mailto:${business.email}`}>{business.email}</a></p>
+  </div>
+
+  <p class="legal-note">These terms are written in plain English for a small local barbershop and are not legal advice.</p>
+</LegalPage>

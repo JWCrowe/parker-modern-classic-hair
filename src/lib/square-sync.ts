@@ -1,38 +1,16 @@
 import { sql } from './db';
 import { upsertClient } from './clients';
-import { getSquareConn, listBookings, listServices, getCustomers, mapSquareStatus, updateSquareConn, type SquareService } from './square';
-
-const norm = (s: string) => s.toLowerCase().replace(/[’']/g, '').replace(/&/g, 'and').replace(/[^a-z0-9]+/g, ' ').trim();
-
-/** Match local services to Square service variations by name unless Ben set a mapping by hand. */
-export async function syncServiceMap() {
-  const sqServices = await listServices();
-  const local = await sql()`select id, name, square_variation_id from services where active = true`;
-  const taken = new Set(local.map((l) => l.square_variation_id).filter(Boolean));
-  for (const l of local) {
-    const mapped = l.square_variation_id && sqServices.find((s) => s.variationId === l.square_variation_id);
-    if (mapped) {
-      await sql()`update services set square_variation_version = ${mapped.version} where id = ${l.id}`;
-      continue;
-    }
-    const n = norm(l.name);
-    const hit = sqServices.find((s) => !taken.has(s.variationId) && (norm(s.itemName) === n || norm(`${s.itemName} ${s.variationName}`) === n || (norm(s.variationName) === n && s.variationName.toLowerCase() !== 'regular')));
-    if (hit) {
-      taken.add(hit.variationId);
-      await sql()`update services set square_variation_id = ${hit.variationId}, square_variation_version = ${hit.version} where id = ${l.id}`;
-    }
-  }
-  return sqServices;
-}
+import { getSquareConn, listBookings, getCustomers, mapSquareStatus, updateSquareConn, type SquareService } from './square';
+import { displayName, syncSquareCatalog } from './catalog';
 
 async function serviceIdFor(variationId: string | undefined, catalog: SquareService[]) {
   if (!variationId) return { id: 'mens', price: 0 };
   const rows = await sql()`select id, price_cents from services where square_variation_id = ${variationId} limit 1`;
   const sqs = catalog.find((s) => s.variationId === variationId);
   if (rows.length) return { id: rows[0].id as string, price: sqs?.priceCents ?? Number(rows[0].price_cents) };
-  // Unknown Square service: keep it as an inactive local service so CRM history stays complete.
+  // Service that is no longer (or never was) offered online: keep an inactive row so CRM history stays complete.
   const id = `sq_${variationId}`.slice(0, 60);
-  const name = sqs ? [sqs.itemName, sqs.variationName && sqs.variationName !== 'Regular' ? sqs.variationName : ''].filter(Boolean).join(' ') : 'Square service';
+  const name = sqs ? displayName(sqs) : 'Square service';
   await sql()`insert into services (id, name, description, duration_min, price_cents, active, sort_order, square_variation_id)
     values (${id}, ${name}, 'Imported from Square', ${sqs?.durationMin || 30}, ${sqs?.priceCents || 0}, false, 99, ${variationId})
     on conflict (id) do nothing`;
@@ -47,7 +25,9 @@ export async function syncSquareBookings(opts: { pastDays: number; futureDays: n
   const from = new Date(Date.now() - opts.pastDays * 86400000);
   const to = new Date(Date.now() + opts.futureDays * 86400000);
   try {
-    const catalog = await syncServiceMap().catch(() => [] as SquareService[]);
+    // Services and hours first, so the public menu and booking use the same Square variation ids.
+    const cat = await syncSquareCatalog();
+    const catalog: SquareService[] = 'services' in cat ? cat.services : [];
     const bookings = await listBookings({ from, to, locationId: c.location_id });
     const custIds = [...new Set(bookings.map((b) => b.customer_id).filter(Boolean))] as string[];
     const existing = custIds.length ? await sql()`select square_customer_id, id from clients where square_customer_id = any(${custIds})` : [];
@@ -91,7 +71,8 @@ export async function syncSquareBookings(opts: { pastDays: number; futureDays: n
           updated_at = now()`;
       upserts++;
     }
-    const summary = `${upserts} bookings synced (${opts.pastDays}d back, ${opts.futureDays}d ahead) in ${Math.round((Date.now() - started) / 100) / 10}s`;
+    const menu = 'summary' in cat ? `${cat.summary}. ` : 'error' in cat ? `Menu sync failed: ${cat.error}. ` : '';
+    const summary = `${menu}${upserts} bookings synced (${opts.pastDays}d back, ${opts.futureDays}d ahead) in ${Math.round((Date.now() - started) / 100) / 10}s`;
     const patch: any = { last_sync_at: new Date().toISOString(), last_sync_summary: summary, last_error: null };
     if (opts.pastDays >= 300) patch.last_full_sync_at = patch.last_sync_at;
     await updateSquareConn(patch);

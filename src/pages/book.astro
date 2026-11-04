@@ -1,9 +1,18 @@
 ---
-export const prerender = true;
+// Rendered on demand: services, prices, durations, and hours come from Square (src/lib/catalog.ts). The CDN keeps it for a minute.
+export const prerender = false;
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { business, hoursDisplay } from '../data/site';
+import { business } from '../data/site';
+import { getPublicMenu, hoursRows } from '../lib/catalog';
+import { openStatus } from '../lib/open-status';
+
+const menu = await getPublicMenu();
+const hoursDisplay = hoursRows(menu.hours);
+const todayDow = openStatus(menu.hours).dow;
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
+Astro.response.headers.set('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
 const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
 ---
 
@@ -44,7 +53,9 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
 
           <div id="step-1" class="step" data-title="Choose a service">
             <h2 class="step-title display">Choose a <span class="serif-i brass">service</span></h2>
+            {menu.mode !== 'square' && <p class="step-sub">Online booking is in request mode right now: pick a time and Ben confirms it personally.</p>}
             <div id="services" class="svc-grid" role="list"></div>
+            <script is:inline type="application/json" id="menu-data" set:html={JSON.stringify({ mode: menu.mode, services: menu.services }).replace(/</g, '\\u003c')}></script>
           </div>
 
           <div id="step-2" class="step" hidden>
@@ -126,7 +137,7 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
               <p class="kicker plain">Hours</p>
               <ul>
                 {hoursDisplay.map((h) => (
-                  <li class={h.label === 'Closed' ? 'closed' : ''}><span>{h.short}</span><span>{h.label}</span></li>
+                  <li class={[h.closed && 'closed', h.idx === todayDow && 'today'].filter(Boolean).join(' ')} data-day={h.idx}><span>{h.short}</span><span>{h.label}</span></li>
                 ))}
               </ul>
               <a href={business.mapsHref} target="_blank" rel="noopener" class="ticket-addr">{business.street}, {business.city}, {business.region} {business.zip} ↗</a>
@@ -142,8 +153,8 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
 </Layout>
 
 <script>
-  import { services, business } from '../data/site';
-  import type { Service } from '../data/site';
+  import { business } from '../data/site';
+  import type { PublicService as Service } from '../lib/catalog';
 
   type Slot = { time: string; label: string; startsAt: string };
   type State = { step: number; maxStep: number; service: Service | null; date: string | null; slot: Slot | null; details: Record<string, string> };
@@ -155,7 +166,11 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
   const todayKey = () => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
   const keyDate = (k: string) => new Date(`${k}T12:00:00Z`);
   const fmtKey = (k: string, o: Intl.DateTimeFormatOptions) => keyDate(k).toLocaleDateString('en-US', { timeZone: 'UTC', ...o });
-  const fmtDur = (m: number) => (m >= 60 ? `${m / 60} hr` : `${m} min`);
+  const fmtDur = (m: number) => (m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m / 60)} hr ${m % 60} min` : `${m / 60} hr`);
+  // Square synced menu, rendered by the server. Ids map to Square service variations, so price and booking match.
+  function readMenu(): { mode: string; services: Service[] } {
+    try { return JSON.parse(document.getElementById('menu-data')?.textContent || '{}'); } catch { return { mode: 'offline', services: [] }; }
+  }
   const longDate = (k: string) => fmtKey(k, { weekday: 'long', month: 'long', day: 'numeric' });
 
   async function getJSON(url: string) {
@@ -170,6 +185,7 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
     if (!app) return;
 
     const state: State = { step: 1, maxStep: 1, service: null, date: null, slot: null, details: {} };
+    const services: Service[] = readMenu().services || [];
     const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
     const loading = (msg: string) => `<p class="step-sub loading"><span class="spin" aria-hidden="true"></span>${msg}</p>`;
     const fallback = (msg: string) => `<div class="fallback"><p class="step-sub">${esc(msg)}</p><div class="row-btns"><a class="btn btn-sm" href="${business.smsHref}">Text Ben</a><a class="btn btn-ghost btn-sm" href="${business.phoneHref}">Call ${business.phone}</a></div></div>`;
@@ -186,6 +202,10 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
 
     function renderServices() {
       const c = $('services');
+      if (!services.length) {
+        c.innerHTML = fallback('The online menu is updating right now. Text or call Ben and he will get you on the books.');
+        return;
+      }
       c.innerHTML = services
         .map(
           (s, i) => `
@@ -193,11 +213,11 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
           <span class="opt-num">${pad(i + 1)}</span>
           <span class="opt-body">
             <span class="opt-name">${esc(s.name)}</span>
-            <span class="opt-desc">${esc(s.desc)}</span>
+            ${s.desc ? `<span class="opt-desc">${esc(s.desc)}</span>` : ''}
           </span>
           <span class="opt-meta">
-            <span class="opt-price">${s.price}</span>
-            <span class="opt-time">${s.time}</span>
+            <span class="opt-price">${esc(s.price)}</span>
+            <span class="opt-time">${esc(s.time)}</span>
           </span>
         </button>`
         )
@@ -578,6 +598,7 @@ const steps = ['Service', 'Date', 'Time', 'Details', 'Done'];
   .ticket-info ul { list-style: none; margin: 0.8rem 0 1rem; display: grid; gap: 0.3rem; }
   .ticket-info li { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--cream-2); }
   .ticket-info li.closed { color: var(--mute); }
+  .ticket-info li.today { color: var(--brass); }
   .ticket-addr { display: block; font-size: 0.82rem; color: var(--brass); margin-top: 0.4rem; transition: color 0.2s; }
   .ticket-addr:hover { color: var(--brass-hi); }
 

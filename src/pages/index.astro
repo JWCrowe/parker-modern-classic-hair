@@ -1,10 +1,20 @@
 ---
-export const prerender = true;
+// Rendered on demand so the menu and hours always come from Square (see src/lib/catalog.ts). The CDN keeps it for a minute.
+export const prerender = false;
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Marquee from '../components/Marquee.astro';
-import { business, services, hoursDisplay, reviews, gallery, heroImage } from '../data/site';
+import { business, reviews, gallery, heroImage } from '../data/site';
+import { getPublicMenu, hoursRows } from '../lib/catalog';
+import { openStatus } from '../lib/open-status';
+
+const menu = await getPublicMenu();
+const services = menu.services;
+const hoursDisplay = hoursRows(menu.hours);
+const status = openStatus(menu.hours);
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
+Astro.response.headers.set('CDN-Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
 
 const star = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L10 15l-5.4 3 1.2-6L1.3 7.8l6.1-.7z"/></svg>';
 const stars = star.repeat(5);
@@ -52,9 +62,9 @@ const stars = star.repeat(5);
               <p>{business.reviewCount} reviews</p>
             </div>
           </div>
-          <div class="ticket-today" id="today-hours">
+          <div class="ticket-today" id="today-hours" data-hours={JSON.stringify(menu.hours)}>
             <span class="muted">Today</span>
-            <strong>Check hours below</strong>
+            <strong>{status.msg}</strong>
           </div>
           <a href="/book" class="btn btn-block btn-sm">Grab a Time</a>
         </aside>
@@ -96,6 +106,13 @@ const stars = star.repeat(5);
             <span>Est. {business.est}</span>
           </div>
           <ol class="board-list">
+            {services.length === 0 && (
+              <li class="svc svc-empty">
+                <a href={business.smsHref} class="svc-link">
+                  <span class="svc-main"><span class="svc-name display">Text or call Ben</span><span class="svc-desc">The online menu is updating. Ben can tell you prices and fit you in.</span></span>
+                </a>
+              </li>
+            )}
             {services.map((s, i) => (
               <li class="svc" data-reveal style={`--d:${0.05 * i}s`}>
                 <a href={`/book?service=${s.id}`} class="svc-link" aria-label={`Book ${s.name}, ${s.price}, ${s.time}`}>
@@ -103,10 +120,9 @@ const stars = star.repeat(5);
                   <span class="svc-main">
                     <span class="svc-name-row">
                       <span class="svc-name display">{s.name}</span>
-                      {s.tag && <span class="svc-tag">{s.tag}</span>}
                       <span class="svc-leader" aria-hidden="true"></span>
                     </span>
-                    <span class="svc-desc">{s.desc}</span>
+                    {s.desc && <span class="svc-desc">{s.desc}</span>}
                   </span>
                   <span class="svc-time">{s.time}</span>
                   <span class="svc-price display">{s.price}</span>
@@ -236,7 +252,7 @@ const stars = star.repeat(5);
             <p class="kicker plain">Hours</p>
             <ul class="hours">
               {hoursDisplay.map((h) => (
-                <li data-day={h.idx} class={h.label === 'Closed' ? 'closed' : ''}>
+                <li data-day={h.idx} class={[h.closed && 'closed', h.idx === status.dow && 'today'].filter(Boolean).join(' ')}>
                   <span>{h.day}</span>
                   <span class="dots" aria-hidden="true"></span>
                   <span>{h.label}</span>
@@ -279,36 +295,18 @@ const stars = star.repeat(5);
 </Layout>
 
 <script>
-  import { hours, hoursDisplay } from '../data/site';
-  function fmt(t: number) {
-    const h = Math.floor(t);
-    const m = Math.round((t % 1) * 60);
-    const hh = h % 12 === 0 ? 12 : h % 12;
-    return `${hh}${m ? ':' + String(m).padStart(2, '0') : ''} ${h >= 12 ? 'PM' : 'AM'}`;
-  }
+  import { openStatus } from '../lib/open-status';
+  // Hours come from Square via the server render. Recompute here so a cached page still shows the right status.
   function initToday() {
-    const now = new Date();
-    const d = now.getDay();
-    document.querySelectorAll(`.hours li[data-day="${d}"]`).forEach((li) => li.classList.add('today'));
     const el = document.getElementById('today-hours');
     if (!el) return;
-    const h = hours[d];
-    const t = now.getHours() + now.getMinutes() / 60;
-    let msg = '';
-    if (h && t < h.open) msg = `Opens ${fmt(h.open)} today`;
-    else if (h && t < h.close) msg = `Open now until ${fmt(h.close)}`;
-    else {
-      for (let i = 1; i <= 7; i++) {
-        const n = (d + i) % 7;
-        const nh = hours[n];
-        if (nh) {
-          const name = i === 1 ? 'tomorrow' : hoursDisplay.find((x) => x.idx === n)!.day;
-          msg = `Closed now · Opens ${name} ${fmt(nh.open)}`;
-          break;
-        }
-      }
-    }
-    el.innerHTML = `<span class="muted">Today</span><strong>${msg}</strong>`;
+    let hours = {};
+    try { hours = JSON.parse(el.dataset.hours || '{}'); } catch {}
+    const st = openStatus(hours);
+    document.querySelectorAll('.hours li.today').forEach((li) => li.classList.remove('today'));
+    document.querySelectorAll(`.hours li[data-day="${st.dow}"]`).forEach((li) => li.classList.add('today'));
+    const strong = el.querySelector('strong');
+    if (strong) strong.textContent = st.msg;
   }
   document.addEventListener('astro:page-load', initToday);
 </script>
@@ -458,7 +456,6 @@ const stars = star.repeat(5);
   .svc-main { display: grid; gap: 0.35rem; min-width: 0; }
   .svc-name-row { display: flex; align-items: center; gap: 0.9rem; }
   .svc-name { font-size: clamp(1.6rem, 3vw, 2.5rem); line-height: 1; letter-spacing: 0.01em; white-space: nowrap; }
-  .svc-tag { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink); background: var(--brass); padding: 0.3rem 0.55rem; white-space: nowrap; }
   .svc-leader { flex: 1; min-width: 1rem; border-bottom: 1px dotted rgba(201, 162, 90, 0.45); transform: translateY(0.4em); }
   .svc-desc { color: var(--mute); font-size: 0.92rem; max-width: 38rem; }
   .svc-time { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream-2); border: 1px solid var(--line); padding: 0.35rem 0.7rem; white-space: nowrap; }

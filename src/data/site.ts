@@ -1,4 +1,4 @@
-// Single source of truth for business facts. Edit here, both pages update.
+// Business facts that do not live in Square (address, phone, reviews, photos).
 
 export const business = {
   name: 'Parker Modern Classic Hair',
@@ -20,26 +20,12 @@ export const business = {
     encodeURIComponent('Parker Modern Classic Hair, 111 S Wall St Ste B, Calhoun, GA 30701'),
 };
 
-export type Service = {
-  id: string;
-  name: string;
-  desc: string;
-  duration: number; // minutes
-  time: string;
-  price: string;
-  tag?: string;
-};
+// Services, prices, and durations are NOT kept here. Square Appointments is the source of truth:
+// see src/lib/catalog.ts. Ben edits services and hours in Square and the site follows.
 
-export const services: Service[] = [
-  { id: 'mens', name: 'Men’s Haircut', desc: 'A precise, detailed, clipper haircut. Complimentary wash and style if requested.', duration: 30, time: '30 min', price: '$38', tag: 'The Standard' },
-  { id: 'beard', name: 'Beard', desc: 'Groom, straight razor, and detail beard.', duration: 30, time: '30 min', price: '$25' },
-  { id: 'combo', name: 'Men’s Haircut & Beard', desc: 'Combine services.', duration: 60, time: '1 hr', price: '$55', tag: 'The Full Service' },
-  { id: 'kids', name: "Kid's Haircut", desc: 'A precise, detailed, clipper haircut. Complimentary wash and style if requested. Age 15 and under.', duration: 30, time: '30 min', price: '$35' },
-  { id: 'womens', name: "Women's Haircut", desc: 'Wash, cut, and blow dry.', duration: 60, time: '1 hr', price: '$55' },
-];
-
+// Hours fallback only: used until Square is connected (or if no business hours are posted in Square).
 // Day index matches JS Date.getDay(): 0 = Sunday. Hours are 24h decimals.
-export const hours: Record<number, { open: number; close: number } | null> = {
+export const fallbackHours: Record<number, { open: number; close: number } | null> = {
   0: null,
   1: { open: 12, close: 19 },
   2: { open: 9, close: 17.5 },
@@ -48,16 +34,6 @@ export const hours: Record<number, { open: number; close: number } | null> = {
   5: { open: 9, close: 17 },
   6: null,
 };
-
-export const hoursDisplay = [
-  { day: 'Monday', short: 'Mon', idx: 1, label: '12 PM – 7 PM' },
-  { day: 'Tuesday', short: 'Tue', idx: 2, label: '9 AM – 5:30 PM' },
-  { day: 'Wednesday', short: 'Wed', idx: 3, label: '9 AM – 5 PM' },
-  { day: 'Thursday', short: 'Thu', idx: 4, label: '11 AM – 6 PM' },
-  { day: 'Friday', short: 'Fri', idx: 5, label: '9 AM – 5 PM' },
-  { day: 'Saturday', short: 'Sat', idx: 6, label: 'Closed' },
-  { day: 'Sunday', short: 'Sun', idx: 0, label: 'Closed' },
-];
 
 export const reviews = [
   { quote: 'Ben has been cutting my hair for over a year and I could not ask for a better barber. He understands the look and delivers.', name: 'Jordan Stone' },

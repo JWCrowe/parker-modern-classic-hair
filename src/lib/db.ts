@@ -20,7 +20,7 @@ export function sql() {
 }
 
 // Idempotent schema upgrades the app needs at runtime (also run by `npm run seed`).
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 let ready: Promise<void> | null = null;
 export function ensureSchema(): Promise<void> {
   if (!ready) {
@@ -50,6 +50,9 @@ export function ensureSchema(): Promise<void> {
       await q`create unique index if not exists clients_square_customer_uidx on clients (square_customer_id) where square_customer_id is not null`;
       await q`alter table services add column if not exists square_variation_id text`;
       await q`alter table services add column if not exists square_variation_version bigint`;
+      await q`alter table services add column if not exists square_item_id text`;
+      await q`alter table services add column if not exists price_varies boolean not null default false`;
+      await q`alter table services add column if not exists synced_at timestamptz`;
       await q`insert into settings (key, value) values ('schema_version', ${JSON.stringify(SCHEMA_VERSION)}::jsonb)
         on conflict (key) do update set value = excluded.value, updated_at = now()`;
     })().catch((e) => {

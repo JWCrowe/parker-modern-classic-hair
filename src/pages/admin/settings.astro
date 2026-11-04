@@ -1,9 +1,10 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { sql } from '../../lib/db';
+import { sql, getSetting } from '../../lib/db';
 import { env } from '../../lib/env';
 import { googleConfigured, getConnection, redirectUri } from '../../lib/google';
 import { getSquareConn, squareOAuthConfigured, squareRedirectUri, squareEnv, squareDashboard } from '../../lib/square';
+import { CATALOG_KEY, getWeeklyHours, type CatalogCache } from '../../lib/catalog';
 import { fmtDateTime } from '../../lib/time';
 
 const origin = Astro.url.origin;
@@ -13,6 +14,8 @@ const sOk = squareOAuthConfigured();
 const s = await getSquareConn().catch(() => null);
 const tokenMode = Boolean(env('SQUARE_ACCESS_TOKEN'));
 const services = await sql()`select id, name, price_cents, square_variation_id, active from services order by active desc, sort_order`;
+const catalog = await getSetting<CatalogCache>(CATALOG_KEY).catch(() => null);
+const hoursNow = await getWeeklyHours().catch(() => null);
 const resendOk = Boolean(env('RESEND_API_KEY'));
 const from = env('RESEND_FROM') || 'onboarding@resend.dev';
 const fromDomain = (from.match(/@([^>\s]+)/) || [])[1] || '';
@@ -50,8 +53,12 @@ const msg = qp.get('msg') || '';
           <dt>Barber</dt><dd>{s.team_member_name || s.team_member_id || <span class="muted-s">Any bookable team member</span>}</dd>
           <dt>Last sync</dt><dd>{s.last_sync_at ? fmtDateTime(s.last_sync_at) : 'Never'}{s.last_sync_summary && <span class="muted-s"> · {s.last_sync_summary}</span>}</dd>
           {s.expires_at && <><dt>Token renews</dt><dd>Automatically, before {fmtDateTime(s.expires_at)}</dd></>}
+          <dt>Website menu</dt><dd>{catalog?.synced_at ? <>{catalog.count} services from Square, updated {fmtDateTime(catalog.synced_at)}{catalog.hidden ? <span class="muted-s"> · {catalog.hidden} not bookable online, hidden</span> : null}</> : <span class="err">Not synced yet. Press Sync now.</span>}</dd>
+          <dt>Website hours</dt><dd>{hoursNow?.source === 'square' ? 'From Square business hours' : <span class="err">Not set in Square, showing default hours. Add business hours to the location in Square.</span>}</dd>
         </dl>
         {s.last_error && <p class="note bad" style="margin-bottom:1rem">{s.last_error}</p>}
+        {catalog?.error && <p class="note bad" style="margin-bottom:1rem">Menu sync: {catalog.error}</p>}
+        <p class="muted-s" style="margin-bottom:1rem">Square runs the public menu and hours. Add, rename, reprice, change the length of, or remove a service in Square Appointments (or change business hours on the location) and the website follows on its own, usually within a minute when webhooks are on, otherwise within about 10 minutes. Only services marked bookable online for this location show up.</p>
         <p class="muted-s" style="margin-bottom:1rem">The website books straight into Square, and Square bookings mirror into this admin (clients, visits, value). Appointments booked in Square that are still pending need to be accepted in the Square app.</p>
 
         <div id="sq-config" class="dlg-in" style="padding:0" data-loc={s.location_id || ''} data-team={s.team_member_id || ''}>
@@ -61,7 +68,7 @@ const msg = qp.get('msg') || '';
             <label class="f"><span>Barber (team member)</span><select name="team"><option value="">Any bookable</option></select></label>
           </div>
           <div hidden id="sq-map">
-            <p class="kicker" style="margin:.5rem 0">Match site services to Square services</p>
+            <p class="kicker" style="margin:.5rem 0">Service links (automatic, change only to fix a mismatch)</p>
             <div class="form-grid">
               {services.filter((x: any) => x.active).map((x: any) => (
                 <label class="f"><span>{x.name}</span><select data-svc={x.id} data-cur={x.square_variation_id || ''}><option value="">Not on Square</option></select></label>
@@ -82,7 +89,7 @@ const msg = qp.get('msg') || '';
       <>
         <p style="margin-bottom:1rem">Connect your Square account so the website books into your real Square calendar and your Square clients show up here.</p>
         <a class="btn" href="/api/admin/square/start">Connect Square</a>
-        <p class="muted-s" style="margin-top:.8rem">Until then, the site takes booking requests from your posted hours, and you confirm them here.</p>
+        <p class="muted-s" style="margin-top:.8rem">Until then, the site shows its starter menu and default hours, takes booking requests, and you confirm them here. Once connected, Square runs the menu and hours.</p>
       </>
     ) : (
       <div class="note warn">
@@ -100,7 +107,8 @@ const msg = qp.get('msg') || '';
       <div class="note" style="margin-top:.6rem">
         <ol>
           <li>Turn on Square Appointments (Free works) and online booking for the Calhoun location.</li>
-          <li>Create each service (Men's Haircut, Beard, Men's Haircut &amp; Beard, Kid's Haircut, Women's Haircut) as an appointment service with price and duration, and mark it bookable online for Ben.</li>
+          <li>Create each service as an appointment service with price, duration, and an optional description, and mark it bookable online for Ben. The website menu is built from these.</li>
+          <li>Post business hours on the Calhoun location. The website hours and the open or closed status come from them.</li>
           <li>Set booking acceptance: Automatic shows clients "You're booked". Manual leaves them as requests you accept in the Square app.</li>
           <li>Do not require a card or no-show fee for online booking; the site cannot collect cards.</li>
           <li>Time off: blocks you make in this admin hide times on this website. If your Square booking page is also live, add the same time off in Square.</li>

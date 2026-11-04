@@ -41,6 +41,7 @@ See `.env.example` for every key with placeholders. Summary:
 | `SQUARE_ACCESS_TOKEN`, `SQUARE_LOCATION_ID`, `SQUARE_TEAM_MEMBER_ID` | optional | Sandbox shortcut: skip OAuth with a personal token |
 | `SQUARE_SELLER_LEVEL_WRITES` | optional | `true` only on Appointments Plus/Premium |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | optional | Google Calendar |
+| `SQUARE_WEBHOOK_SIGNATURE_KEY`, `SQUARE_WEBHOOK_URL` | optional | Square webhook for instant menu, hours, and booking sync |
 | `CRON_SECRET` | on Vercel | Protects the daily Square sync cron |
 
 ## How booking works
@@ -48,7 +49,7 @@ See `.env.example` for every key with placeholders. Summary:
 `/book` loads open days and times from `GET /api/availability` and submits to `POST /api/bookings`.
 
 - **Square mode** (Square connected, a location picked, and the service mapped to a Square service): times come from Square `SearchAvailability`, minus Ben's local blocks and Google busy times. The booking is created in Square (customer found or created by email or phone), then mirrored into Neon. If Square's booking acceptance is automatic, the client sees "You're booked"; if manual, they see "Request received" and Ben accepts it in the Square app. If the Square call fails, the request is saved locally as an inquiry so no lead is lost.
-- **Local mode** (no Square): times come from the posted hours in `src/data/site.ts` minus existing appointments, blocks, and Google busy times. Every booking lands as an **inquiry** that Ben confirms or declines in /admin/inquiries.
+- **Local mode** (no Square): times come from the posted hours (Square business hours once synced, else `fallbackHours` in `src/data/site.ts`) minus existing appointments, blocks, and Google busy times. Every booking lands as an **inquiry** that Ben confirms or declines in /admin/inquiries.
 - Slots are 30 minutes apart, at least 60 minutes out, up to 60 days ahead. The server re-checks the slot on submit and returns 409 if it was taken.
 - A hidden `website` honeypot field drops bot submissions.
 - The confirmation screen only says "You're booked" when the status really is confirmed. Text, Email, and Call buttons stay as a backup.
@@ -62,7 +63,7 @@ Login is Ben's own (email + password, bcrypt, 14 day httpOnly session). Pages:
 - **Inquiries**: Confirm or Decline. Square pending bookings link to the Square app instead, because Square's API cannot accept a booking.
 - **Appointments**: Upcoming, Past, Completed, Cancelled, No shows, plus **Log a visit** for walk-ins and phone bookings.
 - **Clients**: search, visit count, last visit, value this year, lifetime value. The client page has full history, what they book, and notes.
-- **Settings**: Square connect/disconnect, location, barber, service mapping, sync and full import; Google connect/disconnect; email status; password change.
+- **Settings**: Square connect/disconnect, location, barber, website menu and hours status, service links (automatic), sync and full import; Google connect/disconnect; email status; password change.
 
 ### CRM rules
 
@@ -79,7 +80,8 @@ Login is Ben's own (email + password, bcrypt, 14 day httpOnly session). Pages:
 
 1. Create an app at https://developer.squareup.com/apps. Under OAuth, add the redirect URL `https://<your-domain>/api/admin/square/callback` (and `http://localhost:4321/api/admin/square/callback` for Sandbox testing).
 2. Set `SQUARE_ENVIRONMENT`, `SQUARE_APPLICATION_ID`, `SQUARE_APPLICATION_SECRET` (use the Sandbox credentials with `sandbox`, the Production ones with `production`).
-3. In /admin/settings press **Connect Square**, then pick the location and barber and match each site service to its Square service. Save. A full import of the last year runs on connect.
+3. In /admin/settings press **Connect Square**, then confirm the location and barber. A full import of the last year runs on connect, and the public menu (services, prices, durations) and hours are pulled from Square. Ben manages services and hours only in Square from then on; see [docs/WIKI.md](docs/WIKI.md) (Services and hours).
+4. Optional but recommended: add a Square webhook to `https://<your-domain>/api/square/webhook` for `catalog.version.updated`, `location.updated`, `booking.created`, `booking.updated`, and set `SQUARE_WEBHOOK_SIGNATURE_KEY` (and `SQUARE_WEBHOOK_URL` if the registered URL differs from the request URL). Without it, the site refreshes within about 10 minutes.
 4. Sync: admin pages pull fresh bookings when the last sync is older than 3 minutes, and the Vercel cron (`vercel.json`, daily) syncs too.
 
 Scopes requested: `APPOINTMENTS_READ`, `APPOINTMENTS_WRITE`, `APPOINTMENTS_ALL_READ`, `APPOINTMENTS_BUSINESS_SETTINGS_READ`, `CUSTOMERS_READ`, `CUSTOMERS_WRITE`, `ITEMS_READ`, `MERCHANT_PROFILE_READ`, `EMPLOYEES_READ` (+ `APPOINTMENTS_ALL_WRITE` when `SQUARE_SELLER_LEVEL_WRITES=true`). Access tokens refresh automatically.
@@ -102,12 +104,12 @@ When connected, Google busy times hide slots, confirmed local bookings and block
 
 ## Code map
 
-- `src/data/site.ts`: services, prices, durations, hours, contact info, reviews, gallery. Single source for the marketing pages.
+- `src/data/site.ts`: contact info, reviews, gallery, fallback hours. Services, prices, durations, and hours come from Square (`src/lib/catalog.ts`).
 - `src/middleware.ts`: admin auth guard, lazy schema migration, no-store and noindex headers.
 - `src/lib/`: `db`, `auth`, `time` (NY helpers), `availability`, `appointments`, `blocks`, `clients`, `crm`, `square`, `square-sync`, `google`, `email`, `http`, `env`, `oauth-state`.
 - `src/pages/api/`: `availability`, `bookings`, `auth/*`, `admin/*` (appointments, clients, blocks, password, google, square), `cron/square-sync`.
 - `src/pages/admin/`: login, dashboard, calendar, inquiries, appointments, clients, settings. Styles in `src/styles/admin.css`.
-- `db/migrations/`: `000_init.sql` (base tables + services), `001_blocks.sql`, `002_square.sql`. `scripts/seed.mjs` runs them.
+- `db/migrations/`: `000_init.sql` (base tables + starter services), `001_blocks.sql`, `002_square.sql`, `003_square_catalog.sql`. `scripts/seed.mjs` runs them.
 
 ## Design system
 

@@ -7,6 +7,7 @@ Newest first. One short block per day: **Done / Blocked / Next**. Times America/
 ## 2026-11-03
 
 **Done**
+- Square now drives the public menu and hours. `/` and `/book` render on demand (CDN 60s) from the Square-synced `services` rows and Square location business hours; hero Today status and Hours list follow Square. Sync on connect, Sync now, settings save, webhook (`/api/square/webhook`), daily cron, and stale check on page load. `site.ts` no longer holds services or prices. Neon schema v3 (`003_square_catalog`).
 - Docs pack added (`docs/` WIKI, RULES, NEXT, DAILY_LOG, DEPLOY, ROADMAP), README now points to the wiki. Same pattern as jeffcrowecre, PLP, C21 (Jeff: "easy repeatable process" for stylist sites).
 - Empty admin card tightened in `src/styles/admin.css`: `.admin-shell` rows `auto auto` at all breakpoints (no `1fr`), `align-items: start` (mobile no longer `stretch`), `.admin-main` `align-self: start` + content height, `.admin-main > .card` content height, `.card-empty` class on empty Appointments / Inquiries / Clients cards (compact padding, not only `:has()`), closed `dialog.dlg` forced `display: none !important`. Dialogs confirmed outside `.card`.
 - `vercel.json`: docs-only `ignoreCommand` (`scripts/vercel-ignore.sh`, copied from PLP). Crons unchanged.

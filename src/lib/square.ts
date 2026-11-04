@@ -218,31 +218,82 @@ export async function businessProfile() {
   return d.business_booking_profile || {};
 }
 
-export type SquareService = { variationId: string; version: number; itemName: string; variationName: string; durationMin: number; priceCents: number; bookable: boolean; teamMemberIds: string[] };
+export type SquareService = {
+  variationId: string;
+  version: number;
+  itemId: string;
+  itemName: string;
+  variationName: string;
+  variationCount: number;
+  description: string;
+  durationMin: number;
+  priceCents: number;
+  variablePrice: boolean;
+  bookable: boolean;
+  teamMemberIds: string[];
+  presence: Presence[];
+};
 
+type Presence = { all: boolean; present: string[]; absent: string[] };
+const presenceOf = (o: any): Presence => ({ all: o?.present_at_all_locations !== false, present: o?.present_at_location_ids || [], absent: o?.absent_at_location_ids || [] });
+const presentAt = (p: Presence, loc: string) => (p.all ? !p.absent.includes(loc) : p.present.includes(loc));
+
+/** Every appointment service variation in the Square catalog (archived items are excluded by Square). */
 export async function listServices(): Promise<SquareService[]> {
   const out: SquareService[] = [];
   let cursor: string | undefined;
   do {
     const d = await sq('/v2/catalog/search-catalog-items', { body: { product_types: ['APPOINTMENTS_SERVICE'], limit: 100, cursor } });
     for (const item of d.items || []) {
-      for (const v of item.item_data?.variations || []) {
+      const idata = item.item_data || {};
+      if (idata.is_archived) continue;
+      const vars = idata.variations || [];
+      for (const v of vars) {
+        if (v.is_deleted) continue;
         const vd = v.item_variation_data || {};
         out.push({
           variationId: v.id,
           version: Number(v.version),
-          itemName: item.item_data?.name || '',
+          itemId: item.id,
+          itemName: idata.name || '',
           variationName: vd.name || '',
+          variationCount: vars.length,
+          description: String(idata.description_plaintext || idata.description || '').trim(),
           durationMin: Math.round(Number(vd.service_duration || 0) / 60000),
           priceCents: Number(vd.price_money?.amount || 0),
+          variablePrice: vd.pricing_type === 'VARIABLE_PRICING' || !vd.price_money,
           bookable: vd.available_for_booking !== false,
           teamMemberIds: vd.team_member_ids || [],
+          // A variation is only offered where both the item and the variation are present.
+          presence: [presenceOf(item), presenceOf(v)],
         });
       }
     }
     cursor = d.cursor;
   } while (cursor);
   return out;
+}
+
+/** True when this variation can be booked online at the location (and by the chosen barber, when one is set). */
+export function serviceOffered(s: SquareService, locationId?: string, teamMemberId?: string) {
+  if (!s.bookable || !s.durationMin) return false;
+  if (locationId && !s.presence.every((p) => presentAt(p, locationId))) return false;
+  if (teamMemberId && s.teamMemberIds.length && !s.teamMemberIds.includes(teamMemberId)) return false;
+  return true;
+}
+
+export type SquarePeriod = { day_of_week: string; start_local_time: string; end_local_time: string };
+
+/** One location with its posted business hours (Square Dashboard: Account and Settings, Locations, Business hours). */
+export async function getLocation(id: string) {
+  const d = await sq(`/v2/locations/${id}`);
+  const l = d.location || {};
+  return {
+    id: l.id as string,
+    name: (l.name || '') as string,
+    timezone: (l.timezone || 'America/New_York') as string,
+    periods: (l.business_hours?.periods || []) as SquarePeriod[],
+  };
 }
 
 export type SquareSlot = { start_at: string; location_id: string; appointment_segments: { duration_minutes: number; team_member_id: string; service_variation_id: string; service_variation_version: number }[] };

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { sql } from '../../../../lib/db';
 import { bad, json, readJson, str } from '../../../../lib/http';
 import { listLocations, listServices, listTeam, updateSquareConn } from '../../../../lib/square';
+import { syncSquareCatalog } from '../../../../lib/catalog';
 
 // GET: Square locations, bookable team members, and appointment services for the settings form.
 export const GET: APIRoute = async () => {
@@ -35,5 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
       await sql()`update services set square_variation_id = ${varId}, square_variation_version = ${hit?.version ?? null} where id = ${id}`;
     }
   }
-  return json({ ok: true });
+  // Location or barber changes what is bookable, so refresh the public menu and hours right away.
+  const r = await syncSquareCatalog();
+  return json({ ok: true, menu: 'summary' in r ? r.summary : 'error' in r ? r.error : 'skipped' });
 };

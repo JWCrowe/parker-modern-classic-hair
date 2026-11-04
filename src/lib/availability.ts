@@ -1,6 +1,6 @@
-import { sql, getSetting } from './db';
+import { sql } from './db';
 import { freeBusy, type Busy } from './google';
-import { hours as defaultHours } from '../data/site';
+import { getWeeklyHours } from './catalog';
 import { addDays, dowOf, fmtClock, hhmm, nyParts, nyToUtc, todayKey } from './time';
 import { squareReady, searchAvailability, type SquareSlot } from './square';
 
@@ -11,10 +11,15 @@ export const BLOCKING_STATUSES = ['inquiry', 'confirmed', 'completed'];
 
 export type Hours = Record<number, { open: number; close: number } | null>;
 
-/** Weekly hours. Settings key `hours` (same shape as site.ts, decimal hours) overrides site.ts. */
+/** One span per day (earliest open to latest close) for the admin calendar grid. Hours come from Square when synced. */
 export async function getHours(): Promise<Hours> {
-  const h = await getSetting<Hours>('hours').catch(() => null);
-  return h && typeof h === 'object' ? h : defaultHours;
+  const { hours } = await getWeeklyHours();
+  const out: Hours = {};
+  for (let d = 0; d < 7; d++) {
+    const p = hours[d] || [];
+    out[d] = p.length ? { open: Math.min(...p.map((x) => x.open)), close: Math.max(...p.map((x) => x.close)) } : null;
+  }
+  return out;
 }
 
 export type ServiceRow = { id: string; name: string; description: string; duration_min: number; price_cents: number; square_variation_id: string | null };
@@ -48,7 +53,7 @@ export type Availability = { service: ServiceRow; days: Record<string, Slot[]>; 
 /**
  * Open start times per NY date for a service.
  * Square mode: Square SearchAvailability (respects Square hours, bookings, and blocked time) minus local blocks and Google busy.
- * Local mode (Square not connected or service not mapped): site hours minus appointments, blocks, Google busy.
+ * Local mode (Square not connected or service not mapped): posted hours (Square hours when synced) minus appointments, blocks, Google busy.
  */
 export async function availability(serviceId: string, startKey: string, days: number): Promise<Availability | null> {
   const svc = await getService(serviceId);
@@ -88,19 +93,20 @@ export async function availability(serviceId: string, startKey: string, days: nu
     }
   }
 
-  const hrs = await getHours();
+  const { hours: hrs } = await getWeeklyHours();
   const { busy, googleConnected } = await busyRanges(from, to);
   for (const key of Object.keys(out)) {
-    const h = hrs[dowOf(key)];
-    if (!h || key < today || key > lastKey) continue;
-    const open = Math.round(h.open * 60);
-    const close = Math.round(h.close * 60);
-    for (let m = open; m + svc.duration_min <= close; m += SLOT_STEP) {
-      const s = nyToUtc(key, m);
-      const e = new Date(s.getTime() + svc.duration_min * 60000);
-      if (s.getTime() < earliest) continue;
-      if (busy.some((b) => b.start < e && b.end > s)) continue;
-      out[key].push({ time: hhmm(m), label: fmtClock(m), startsAt: s.toISOString() });
+    if (key < today || key > lastKey) continue;
+    for (const h of hrs[dowOf(key)] || []) {
+      const open = Math.round(h.open * 60);
+      const close = Math.round(h.close * 60);
+      for (let m = open; m + svc.duration_min <= close; m += SLOT_STEP) {
+        const s = nyToUtc(key, m);
+        const e = new Date(s.getTime() + svc.duration_min * 60000);
+        if (s.getTime() < earliest) continue;
+        if (busy.some((b) => b.start < e && b.end > s)) continue;
+        out[key].push({ time: hhmm(m), label: fmtClock(m), startsAt: s.toISOString() });
+      }
     }
   }
   return { service: svc, days: out, mode: 'local', googleConnected, squareError };

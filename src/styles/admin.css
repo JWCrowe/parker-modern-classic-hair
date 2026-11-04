@@ -159,3 +159,5 @@ dl.kv dt { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.22em; text-tr
   .item { grid-template-columns: 1fr; }
   .item-actions { justify-content: start; }
 }
+
+/* redeploy: square oauth env */

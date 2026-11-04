@@ -4,6 +4,7 @@
 
 | Date | Commit | What | By | Notes |
 |------|--------|------|----|-------|
+| 2026-11-03 | `1d21483` | Square drives public menu + hours: `/` and `/book` on demand (CDN 60s) from Square-synced `services` + location business hours; hero Today status + Hours lists live; webhook `/api/square/webhook`; `site.ts` services removed | this chat | Neon schema v3 auto-applied (`003_square_catalog`, additive columns). Prod Ready, verified live (local mode until Ben connects Square). Webhook needs `SQUARE_WEBHOOK_SIGNATURE_KEY` (optional). |
 | 2026-11-03 | `8c4fad2` | Docs pack + empty admin card height fix (shell rows auto/auto, main align start, `.card-empty`) + docs-only ignoreCommand | this chat | No Neon/env change. Push-triggered prod build Ready (Mac `vercel --prod` returned Not authorized). New CSS verified in live bundle; `/api/health` ok. |
 | 2026-11-02 | `f544649` | Stop admin shell from stretching the mobile header tall | this chat | No Neon/env change |
 | 2026-11-02 | `3b4d1d3` | Mobile admin nav: short labels + width containment | this chat | No Neon/env change |

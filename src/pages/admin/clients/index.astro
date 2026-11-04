@@ -32,7 +32,7 @@ const totals = clients.reduce((t, c) => ({ visits: t.visits + c.visit_count, yea
     <div class="stat"><b>{money(totals.life)}</b><span>Lifetime value</span></div>
   </div>
 
-  <section class="card">
+  <section class={clients.length ? 'card' : 'card card-empty'}>
     {clients.length ? (
       <div class="table-wrap">
         <table class="t">

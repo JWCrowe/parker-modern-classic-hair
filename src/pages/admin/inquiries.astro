@@ -21,7 +21,7 @@ const rows = await sql()`select a.*, s.name as service_name, c.name as client_na
       <p class="admin-sub">Confirm emails the client and adds it to your calendar. Decline frees the time and lets them know.</p>
     </div>
   </div>
-  <section class="card">
+  <section class={rows.length ? 'card' : 'card card-empty'}>
     {rows.length ? (
       <div class="list">
         {rows.map((a: any) => (

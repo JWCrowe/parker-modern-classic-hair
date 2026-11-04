@@ -40,7 +40,7 @@ const today = todayKey();
     {tabs.map((t) => <a href={`?tab=${t.k}`} class={tab === t.k ? 'is-cur' : ''}>{t.l}</a>)}
   </nav>
 
-  <section class="card">
+  <section class={rows.length ? 'card' : 'card card-empty'}>
     {rows.length ? (
       <div class="table-wrap">
         <table class="t">

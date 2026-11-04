@@ -1,5 +1,7 @@
 # Parker Modern Classic Hair
 
+**Memory + hands → [docs/WIKI.md](docs/WIKI.md)** (rules, next, daily log, deploy record, roadmap). Read it first.
+
 Website, booking, and admin panel for Ben's chair at 111 S Wall St Ste B, Calhoun, GA 30701.
 
 - Astro 5 in server mode on Vercel (`@astrojs/vercel`). The marketing pages (`/`, `/book`) are prerendered static HTML; the APIs and `/admin` run as functions.

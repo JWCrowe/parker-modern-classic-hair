@@ -64,8 +64,7 @@ Square:
 - Optional: `SQUARE_REDIRECT_URI`, and `SQUARE_SELLER_LEVEL_WRITES=true` only if Ben is on Appointments Plus or Premium.
 - Sandbox shortcut that skips OAuth: `SQUARE_ACCESS_TOKEN`, `SQUARE_LOCATION_ID`, `SQUARE_TEAM_MEMBER_ID`.
 
-Google (optional):
-- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and optionally `GOOGLE_REDIRECT_URI`.
+Google: not used. Square is the only calendar. Do not set `GOOGLE_*` and do not ask Ben to configure Google.
 
 ## What Jeff needs to do next
 
@@ -80,10 +79,7 @@ Google (optional):
    - Choose booking acceptance. With **Automatic**, website clients see "You're booked". With **Manual**, they see "Request received" and Ben accepts in the Square app, because the API cannot accept a booking.
    - Turn **off** "require card on file / no-show fee" for online booking, since the site cannot collect cards.
    - Time off: blocks he creates in /admin/calendar hide times on the website only. Square has no blocked-time API, so if his Square booking page stays live, he should add the same time off in Square too.
-3. **Google OAuth client** (optional, only if Ben wants his personal Google busy times respected):
-   - In Google Cloud, create a project, enable the Calendar API, and set up an External consent screen with the scopes `calendar.events` and `calendar.freebusy`. Add Ben as a test user, or publish the app.
-   - Create a Web OAuth client with redirect URI `https://parkermodernclassichair.com/api/admin/google/callback` (plus the localhost one for dev).
-   - Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and have Ben press Connect.
+3. **Google Calendar:** skipped. Square is the only calendar and booking source of truth. Nothing for Ben to set up.
 4. **Resend domain:**
    - Right now only the PLP domains are verified. Until this domain is verified, use `onboarding@resend.dev`, which only delivers to the Resend account owner.
    - Add `parkermodernclassichair.com` in Resend, add its DNS records, and verify it.
@@ -96,7 +92,7 @@ Google (optional):
 
 ## Behavior notes and limits
 
-- **Without Square,** the site runs in local mode: posted hours minus appointments, blocks, and Google busy times. Every booking is an inquiry that Ben confirms or declines in admin, and both actions email the client.
+- **Without Square,** the site runs in local mode: posted hours minus appointments and blocks. Every booking is an inquiry that Ben confirms or declines in admin, and both actions email the client.
 - **With Square,** bookings are created in Square and mirrored to Neon. If Square errors, the request is saved locally as an inquiry with a note, so no lead is lost.
 - **Pending Square bookings** cannot be confirmed from our admin, because the API makes booking status read-only. The admin links to the Square app instead. Cancel and decline from our admin do cancel in Square.
 - **Mirror refresh:** it refreshes on admin page loads (when older than 3 minutes), on the daily cron, and from the Sync buttons in Settings.

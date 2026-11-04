@@ -5,13 +5,12 @@ import { sql } from '../../lib/db';
 import { dashboardStats, needsWrapUp } from '../../lib/crm';
 import { syncIfStale } from '../../lib/square-sync';
 import { getSquareConn } from '../../lib/square';
-import { getConnection } from '../../lib/google';
 import { fmtDate, fmtTime, money, nyToUtc, todayKey, addDays, fmtKey } from '../../lib/time';
 import { fmtPhone } from '../../lib/http';
 
 await syncIfStale().catch(() => {});
 const today = todayKey();
-const [stats, wrap, sqc, g] = await Promise.all([dashboardStats(), needsWrapUp(), getSquareConn().catch(() => null), getConnection().catch(() => null)]);
+const [stats, wrap, sqc] = await Promise.all([dashboardStats(), needsWrapUp(), getSquareConn().catch(() => null)]);
 const todays = await sql()`select a.*, s.name as service_name, c.name as client_name, c.phone as client_phone, c.email as client_email
   from appointments a join services s on s.id = a.service_id join clients c on c.id = a.client_id
   where a.starts_at >= ${nyToUtc(today, 0).toISOString()} and a.starts_at < ${nyToUtc(addDays(today, 1), 0).toISOString()} and a.status <> 'cancelled'
@@ -34,10 +33,9 @@ const blocksToday = await sql()`select * from blocks where starts_at < ${nyToUtc
     </div>
   </div>
 
-  {(!sqc || !g) && (
+  {!sqc && (
     <p class="note warn" style="margin-bottom:1.25rem">
-      {!sqc ? 'Square is not connected yet, so the site is taking booking requests from your posted hours. ' : ''}
-      {!g ? 'Google Calendar is optional. ' : ''}
+      Square is not connected yet, so the site is taking booking requests from your posted hours.
       <a class="link" href="/admin/settings">Open settings</a>
     </p>
   )}

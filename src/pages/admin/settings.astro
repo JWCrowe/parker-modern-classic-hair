@@ -2,14 +2,11 @@
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { sql, getSetting } from '../../lib/db';
 import { env } from '../../lib/env';
-import { googleConfigured, getConnection, redirectUri } from '../../lib/google';
 import { getSquareConn, squareOAuthConfigured, squareRedirectUri, squareEnv, squareDashboard } from '../../lib/square';
 import { CATALOG_KEY, getWeeklyHours, type CatalogCache } from '../../lib/catalog';
 import { fmtDateTime } from '../../lib/time';
 
 const origin = Astro.url.origin;
-const gOk = googleConfigured();
-const g = await getConnection().catch(() => null);
 const sOk = squareOAuthConfigured();
 const s = await getSquareConn().catch(() => null);
 const tokenMode = Boolean(env('SQUARE_ACCESS_TOKEN'));
@@ -30,7 +27,6 @@ const flash: Record<string, [string, string]> = {
   error: ['bad', 'Something went wrong.'],
 };
 const sqFlash = qp.get('square') ? flash[qp.get('square')!] || ['bad', qp.get('square')!] : null;
-const gFlash = qp.get('google') ? flash[qp.get('google')!] || ['bad', qp.get('google')!] : null;
 const msg = qp.get('msg') || '';
 ---
 
@@ -115,38 +111,6 @@ const msg = qp.get('msg') || '';
         </ol>
       </div>
     </details>
-  </section>
-
-  <section class="card" id="google">
-    <h2 class="card-title">Google Calendar <span class="pill">Optional</span></h2>
-    {gFlash && <p class={`note ${gFlash[0] === 'bad' ? 'bad' : ''}`} style="margin-bottom:1rem">{gFlash[1]} {msg}</p>}
-    {g ? (
-      <>
-        <dl class="kv" style="margin-bottom:1rem">
-          <dt>Status</dt><dd><span class="pill completed">Connected</span></dd>
-          <dt>Account</dt><dd>{g.email || 'Google account'}</dd>
-          <dt>Since</dt><dd>{fmtDateTime(g.connected_at)}</dd>
-        </dl>
-        {g.last_error && <p class="note bad" style="margin-bottom:1rem">{g.last_error}</p>}
-        <p class="muted-s" style="margin-bottom:1rem">Busy times on this calendar are hidden from online booking. Confirmed website bookings and your blocks get added to it{s ? ' (Square bookings are left to Square\'s own Google sync, so nothing doubles up)' : ''}.</p>
-        <button class="btn btn-sm btn-danger" data-api="/api/admin/google/disconnect" data-method="POST" data-confirm="Disconnect Google Calendar?" data-done="Disconnected">Disconnect</button>
-      </>
-    ) : gOk ? (
-      <>
-        <p style="margin-bottom:1rem">Connect your Google Calendar so personal busy times block online booking.</p>
-        <a class="btn btn-sm" href="/api/admin/google/start">Connect Google Calendar</a>
-      </>
-    ) : (
-      <div class="note warn">
-        <b>Google is not set up on the server yet.</b> Steps:
-        <ol>
-          <li>In <a class="link" href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, create a project and enable the Google Calendar API.</li>
-          <li>OAuth consent screen: External, add scopes <code class="k">calendar.events</code> and <code class="k">calendar.freebusy</code>, and add Ben as a test user (or publish).</li>
-          <li>Credentials: create an OAuth client ID (Web application) with redirect URI <code class="k">{redirectUri(origin)}</code></li>
-          <li>Put the client ID and secret in Vercel env as <code class="k">GOOGLE_CLIENT_ID</code> and <code class="k">GOOGLE_CLIENT_SECRET</code>, then redeploy and press Connect here.</li>
-        </ol>
-      </div>
-    )}
   </section>
 
   <section class="card">

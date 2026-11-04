@@ -6,7 +6,7 @@ Website, booking, and admin panel for Ben's chair at 111 S Wall St Ste B, Calhou
 
 - Astro 5 in server mode on Vercel (`@astrojs/vercel`). The marketing pages (`/`, `/book`) are prerendered static HTML; the APIs and `/admin` run as functions.
 - Neon Postgres holds clients (CRM), appointments, blocks, and settings.
-- Square Appointments is the source of truth for the schedule once connected. Google Calendar is an optional secondary. Resend sends email.
+- Square Appointments is the only calendar and booking source of truth. Ben does not set up Google Calendar. Resend sends email.
 - All schedule math is in America/New_York.
 
 ## Run
@@ -40,7 +40,6 @@ See `.env.example` for every key with placeholders. Summary:
 | `SQUARE_ENVIRONMENT`, `SQUARE_APPLICATION_ID`, `SQUARE_APPLICATION_SECRET`, `SQUARE_REDIRECT_URI` | for Square | Square OAuth app |
 | `SQUARE_ACCESS_TOKEN`, `SQUARE_LOCATION_ID`, `SQUARE_TEAM_MEMBER_ID` | optional | Sandbox shortcut: skip OAuth with a personal token |
 | `SQUARE_SELLER_LEVEL_WRITES` | optional | `true` only on Appointments Plus/Premium |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | optional | Google Calendar |
 | `SQUARE_WEBHOOK_SIGNATURE_KEY`, `SQUARE_WEBHOOK_URL` | optional | Square webhook for instant menu, hours, and booking sync |
 | `CRON_SECRET` | on Vercel | Protects the daily Square sync cron |
 
@@ -48,8 +47,8 @@ See `.env.example` for every key with placeholders. Summary:
 
 `/book` loads open days and times from `GET /api/availability` and submits to `POST /api/bookings`.
 
-- **Square mode** (Square connected, a location picked, and the service mapped to a Square service): times come from Square `SearchAvailability`, minus Ben's local blocks and Google busy times. The booking is created in Square (customer found or created by email or phone), then mirrored into Neon. If Square's booking acceptance is automatic, the client sees "You're booked"; if manual, they see "Request received" and Ben accepts it in the Square app. If the Square call fails, the request is saved locally as an inquiry so no lead is lost.
-- **Local mode** (no Square): times come from the posted hours (Square business hours once synced, else `fallbackHours` in `src/data/site.ts`) minus existing appointments, blocks, and Google busy times. Every booking lands as an **inquiry** that Ben confirms or declines in /admin/inquiries.
+- **Square mode** (Square connected, a location picked, and the service mapped to a Square service): times come from Square `SearchAvailability`, minus Ben's local blocks. The booking is created in Square (customer found or created by email or phone), then mirrored into Neon. If Square's booking acceptance is automatic, the client sees "You're booked"; if manual, they see "Request received" and Ben accepts it in the Square app. If the Square call fails, the request is saved locally as an inquiry so no lead is lost.
+- **Local mode** (no Square): times come from the posted hours (Square business hours once synced, else `fallbackHours` in `src/data/site.ts`) minus existing appointments and blocks. Every booking lands as an **inquiry** that Ben confirms or declines in /admin/inquiries.
 - Slots are 30 minutes apart, at least 60 minutes out, up to 60 days ahead. The server re-checks the slot on submit and returns 409 if it was taken.
 - A hidden `website` honeypot field drops bot submissions.
 - The confirmation screen only says "You're booked" when the status really is confirmed. Text, Email, and Call buttons stay as a backup.
@@ -59,11 +58,11 @@ See `.env.example` for every key with placeholders. Summary:
 Login is Ben's own (email + password, bcrypt, 14 day httpOnly session). Pages:
 
 - **Dashboard**: new inquiries, cuts this week/month/year, revenue this month/year, today's schedule and blocks, past appointments to wrap up.
-- **Calendar**: day and week views showing appointments (inquiry, confirmed, completed, no show), blocks, closed hours, and Google busy. Tap an empty spot (or the all-day row, or Block time) to create a block; tap a block to edit or delete; tap an appointment to confirm, complete, no show, or cancel. Phones open in day view.
+- **Calendar**: day and week views showing appointments (inquiry, confirmed, completed, no show), blocks, and closed hours. Tap an empty spot (or the all-day row, or Block time) to create a block; tap a block to edit or delete; tap an appointment to confirm, complete, no show, or cancel. Phones open in day view.
 - **Inquiries**: Confirm or Decline. Square pending bookings link to the Square app instead, because Square's API cannot accept a booking.
 - **Appointments**: Upcoming, Past, Completed, Cancelled, No shows, plus **Log a visit** for walk-ins and phone bookings.
 - **Clients**: search, visit count, last visit, value this year, lifetime value. The client page has full history, what they book, and notes.
-- **Settings**: Square connect/disconnect, location, barber, website menu and hours status, service links (automatic), sync and full import; Google connect/disconnect; email status; password change.
+- **Settings**: Square connect/disconnect, location, barber, website menu and hours status, service links (automatic), sync and full import; email status; password change.
 
 ### CRM rules
 
@@ -74,7 +73,7 @@ Login is Ben's own (email + password, bcrypt, 14 day httpOnly session). Pages:
 
 ### Blocks
 
-`blocks` table (`db/migrations/001_blocks.sql`): all day (NY midnight to midnight, end date inclusive) or a start and end time, with an optional label and notes. Blocks remove slots from `/api/availability` in both modes and, if Google is connected, can add a busy event there. **Square has no API for blocked time**, so blocks only affect this website. If Ben's Square booking page is also live, he adds the same time off in Square.
+`blocks` table (`db/migrations/001_blocks.sql`): all day (NY midnight to midnight, end date inclusive) or a start and end time, with an optional label and notes. Blocks remove slots from `/api/availability` in both modes. **Square has no API for blocked time**, so blocks only affect this website. If Ben's Square booking page is also live, he adds the same time off in Square.
 
 ## Square setup
 
@@ -86,14 +85,9 @@ Login is Ben's own (email + password, bcrypt, 14 day httpOnly session). Pages:
 
 Scopes requested: `APPOINTMENTS_READ`, `APPOINTMENTS_WRITE`, `APPOINTMENTS_ALL_READ`, `APPOINTMENTS_BUSINESS_SETTINGS_READ`, `CUSTOMERS_READ`, `CUSTOMERS_WRITE`, `ITEMS_READ`, `MERCHANT_PROFILE_READ`, `EMPLOYEES_READ` (+ `APPOINTMENTS_ALL_WRITE` when `SQUARE_SELLER_LEVEL_WRITES=true`). Access tokens refresh automatically.
 
-## Google Calendar setup (optional)
+## Google Calendar (turned off)
 
-1. Google Cloud Console: create a project and enable the Google Calendar API.
-2. OAuth consent screen: External; scopes `calendar.events` and `calendar.freebusy`; add Ben's Google account as a test user (or publish the app).
-3. Credentials: OAuth client ID, type Web application, redirect URI `https://<your-domain>/api/admin/google/callback` (plus the localhost one for dev).
-4. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, redeploy, and press **Connect Google Calendar** in /admin/settings.
-
-When connected, Google busy times hide slots, confirmed local bookings and blocks are written to Ben's calendar, and declines or cancellations remove them. Square bookings are not written to Google by this app (Square has its own Google sync), so nothing doubles up.
+Not used. Square is the only calendar and booking source of truth, and Ben does not set up Google. There is no Google section or Connect button in /admin/settings, and `/api/admin/google/start` just returns to Settings. The old OAuth helpers (`src/lib/google.ts`, `/api/admin/google/*`) stay in the code unused. If Ben wants Square bookings on his phone calendar, Square's own calendar sync handles that.
 
 ## Email (Resend)
 

@@ -26,7 +26,7 @@
 | Timezone | America/New_York (all schedule math) |
 | Stack | Astro 5 `output: 'server'` + `@astrojs/vercel` (Node functions). `/` and `/book` render on demand (CDN cached 60s) so the Square menu and hours are always current; `/admin` + `/api` serverless |
 | Database | Neon Postgres, project `twilight-mouse-67054832`: clients (CRM), appointments, blocks, settings, services. Env `DATABASE_URL` |
-| Schedule | **Square Appointments is source of truth when connected.** Google Calendar optional secondary. Resend optional email |
+| Schedule | **Square Appointments is the only calendar and booking source of truth.** No Google Calendar (Ben does not set it up; no Settings section). Resend optional email |
 | Without Square | Local inquiry mode: every booking lands as an inquiry; Ben confirms or declines in `/admin/inquiries` |
 | With Square | Bookings created in Square, mirrored to Neon. Pending (manual-accept) Square bookings can't be accepted via our API; Ben accepts in the Square app |
 | Live host | https://parker-modern-classic-hair.vercel.app (Vercel project `parker-modern-classic-hair`). `parkermodernclassichair.com` is still on **Weebly** until DNS moves; astro `site` = vercel.app URL so `checkOrigin` passes |
@@ -46,7 +46,7 @@
 
 - **Public:** `/`, `/book`, `GET /api/availability`, `POST /api/bookings`, `GET /api/health`, `POST /api/square/webhook` (signed by Square). No admin links in public nav.
 - **Admin (Ben only):** `/admin/login`, `/admin` (dashboard), `/admin/calendar` (+ blocks), `/admin/inquiries`, `/admin/appointments`, `/admin/clients`, `/admin/settings`. Login seeded from `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME`; session signed with `AUTH_SECRET`.
-- **OAuth:** Square + Google under `/api/admin/square/*`, `/api/admin/google/*`.
+- **OAuth:** Square under `/api/admin/square/*`. Google OAuth code (`/api/admin/google/*`, `src/lib/google.ts`) is left in unused; `/api/admin/google/start` just returns to Settings.
 - **Cron:** `/api/cron/square-sync` daily (`vercel.json`), protected by `CRON_SECRET`. Refreshes menu + hours, then bookings.
 
 ## Env (names only)

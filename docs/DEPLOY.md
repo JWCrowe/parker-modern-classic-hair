@@ -4,7 +4,7 @@
 
 | Date | Commit | What | By | Notes |
 |------|--------|------|----|-------|
-| 2026-11-03 | (this commit) | Docs pack + empty admin card height fix (shell rows auto/auto, main align start, `.card-empty`) + docs-only ignoreCommand | this chat | No Neon/env change. `vercel --prod` from Mac. |
+| 2026-11-03 | `8c4fad2` | Docs pack + empty admin card height fix (shell rows auto/auto, main align start, `.card-empty`) + docs-only ignoreCommand | this chat | No Neon/env change. Push-triggered prod build Ready (Mac `vercel --prod` returned Not authorized). New CSS verified in live bundle; `/api/health` ok. |
 | 2026-11-02 | `f544649` | Stop admin shell from stretching the mobile header tall | this chat | No Neon/env change |
 | 2026-11-02 | `3b4d1d3` | Mobile admin nav: short labels + width containment | this chat | No Neon/env change |
 | 2026-11-02 | `85a2361` / `e19ce49` | Sign-out CSRF fix + Secure cookie clear; mobile nav overflow | this chat | `site` set to vercel.app |

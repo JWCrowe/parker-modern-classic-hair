@@ -54,7 +54,7 @@ const jsonLd = {
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <meta name="theme-color" content="#0a0908" />
+    <meta name="theme-color" content="#0e1612" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
 
@@ -75,7 +75,7 @@ const jsonLd = {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Outfit:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
@@ -88,7 +88,6 @@ const jsonLd = {
     <ClientRouter />
   </head>
   <body>
-    <div class="grain" aria-hidden="true" transition:persist="grain"></div>
     <slot />
 
     <script>

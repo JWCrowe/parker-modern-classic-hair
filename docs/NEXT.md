@@ -4,6 +4,8 @@ Ordered. Delete line when shipped. Log [DAILY_LOG.md](DAILY_LOG.md).
 
 ---
 
+- [ ] **Jeff:** review the 2026-11-09 forest + copper redesign on https://parker-modern-classic-hair.vercel.app (phone + desktop) and send Ben the link.
+- [ ] Optional: replace `public/og.jpg` (share preview image) with one in the new forest + copper look.
 - [ ] Square Developer Dashboard: add Production OAuth redirect `https://parker-modern-classic-hair.vercel.app/api/admin/square/callback`
 - [ ] Ben: /admin/settings → Connect Square, confirm location + barber. Services and hours then sync on their own (no service map needed unless Settings shows a mismatch).
 - [ ] Ben, in Square: each service bookable online for Ben at the Calhoun location, with price, duration, description; business hours posted on the location.

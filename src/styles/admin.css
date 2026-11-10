@@ -1,4 +1,45 @@
 /* Admin panel. Same ink / brass / cream system as the public site, denser and calmer. */
+
+/* Admin keeps its original ink / brass / cream look. The public site moved to forest + copper
+   (global.css, Nov 2026), so the legacy tokens live here, scoped to the admin body, and the new
+   public token names are pointed back at them so shared classes (.btn, .kicker, .serif-i) match. */
+.admin-body {
+  --ink: #0a0908;
+  --char: #121110;
+  --char-2: #1a1816;
+  --char-3: #23201c;
+  --brass: #c9a25a;
+  --brass-hi: #e4c487;
+  --brass-lo: #8a6c35;
+  --cream: #efe6d2;
+  --cream-2: #d8ceb8;
+  --mute: #8f8676;
+  --line: rgba(239, 230, 210, 0.12);
+  --line-2: rgba(201, 162, 90, 0.35);
+  --display: 'Anton', 'Oswald', Impact, 'Arial Narrow', sans-serif;
+  --serif: 'Instrument Serif', 'Times New Roman', Georgia, serif;
+  --head: var(--serif);
+  --sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --forest-0: var(--ink);
+  --forest-1: var(--char);
+  --forest-2: var(--char-2);
+  --forest-3: var(--char-3);
+  --copper: var(--brass);
+  --copper-hi: var(--brass-hi);
+  --copper-lo: var(--brass-lo);
+  --bone: var(--cream);
+  --bone-2: var(--cream-2);
+  --moss: var(--mute);
+  --rule: var(--line);
+  --rule-2: var(--line-2);
+  --radius: 0px;
+  font-family: var(--sans);
+  color: var(--cream);
+}
+.admin-body .btn { border-radius: 0; box-shadow: none; }
+.admin-body .btn .arrow { width: auto; height: auto; margin: 0; background: none; color: inherit; border-radius: 0; }
+.admin-body .kicker::before { width: 2.2rem; height: 1px; border-radius: 0; box-shadow: none; }
+.admin-body .serif-i { text-transform: none; }
 .admin-body { min-height: 100vh; background: var(--ink); background-image: radial-gradient(ellipse at 100% 0%, rgba(201, 162, 90, 0.08), transparent 45%); }
 .admin-shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); grid-template-rows: auto auto; min-height: 100vh; width: 100%; max-width: 100%; overflow-x: clip; align-content: start; align-items: start; }
 .admin-side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 1.5rem; padding: 1.5rem 1.1rem; border-right: 1px solid var(--line); background: rgba(18, 17, 16, 0.9); }

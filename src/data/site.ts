@@ -43,13 +43,15 @@ export const reviews = [
 
 const u = (id: string, w = 1200) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=75`;
 
-export const heroImage = u('1503951914875-452162b0f3f1', 2000);
+// Style reference photography (Unsplash): dark shop floor, warm wood, chair, razor work.
+export const heroImage = u('1622287162716-f311baa1a2b8', 2000);
+export const floorImage = u('1585747860715-2ba37e788b70', 2000);
 
 export const gallery = [
-  { src: u('1622286342621-4bd786c2447c', 1100), label: 'Skin Fade', note: 'Tight taper, clean blend', cls: 'g-a' },
-  { src: u('1599351431202-1e0f0137899a', 800), label: 'Razor Line-Up', note: 'Hard part, crisp edge', cls: 'g-b' },
-  { src: u('1517832606299-7ae9b720a186', 800), label: 'Beard Detail', note: 'Shaped by hand', cls: 'g-c' },
-  { src: u('1512690459411-b9245aed614b', 800), label: 'The Chair', note: 'Take a seat', cls: 'g-d' },
-  { src: u('1532710093739-9470acff878f', 1100), label: 'Hot Lather', note: 'Straight razor finish', cls: 'g-e' },
-  { src: u('1493256338651-d82f7acb2b38', 800), label: 'Clipper Work', note: 'Precise, detailed', cls: 'g-f' },
+  { src: u('1622286342621-4bd786c2447c', 900), label: 'Skin Fade', note: 'Tight taper, clean blend', cls: 'g-a' },
+  { src: u('1599351431202-1e0f0137899a', 900), label: 'Razor Line-Up', note: 'Hard part, crisp edge', cls: 'g-b' },
+  { src: u('1532710093739-9470acff878f', 900), label: 'Hot Lather', note: 'Straight razor finish', cls: 'g-c' },
+  { src: u('1512690459411-b9245aed614b', 900), label: 'The Chair', note: 'Take a seat', cls: 'g-d' },
+  { src: u('1514336937476-a5b961020a5c', 900), label: 'Clipper Work', note: 'Precise, detailed', cls: 'g-e' },
+  { src: u('1517832606299-7ae9b720a186', 900), label: 'Beard Detail', note: 'Shaped by hand', cls: 'g-f' },
 ];

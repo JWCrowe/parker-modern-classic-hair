@@ -4,6 +4,19 @@ Newest first. One short block per day: **Done / Blocked / Next**. Times America/
 
 ---
 
+## 2026-11-09
+
+**Done**
+- Full public redesign (Jeff: "revamp bens website entirely ... change the color scheme"). New forest + copper + bone palette, Cormorant Garamond + Outfit (Anton / Instrument Serif / Archivo and brass `#c9a25a` gone from the public site). New hero (arch photo, rotating seal, live Today status, info rail), parchment service menu, "Your Visit" steps, scroll-snap gallery, restyled About, reviews, Visit band, header (pill nav), footer, mobile nav, sticky book bar, `/book` (rounded panel, round progress steps, parchment receipt summary), legal pages, favicon. Animated film grain removed.
+- Square wiring untouched: `getPublicMenu` / `hoursRows` / `openStatus` on `/` and `/book`; no menu or hours in `site.ts`. Same three reviews. Hero and gallery photos swapped to darker Unsplash shop-floor shots.
+- Admin left visually as is: legacy ink / brass tokens now live in `admin.css` scoped to `.admin-body`.
+
+**Blocked**
+- None. New look shows on the vercel.app host only; `parkermodernclassichair.com` is still Weebly until DNS moves.
+
+**Next**
+- Jeff: look over the new site on phone + desktop. Optional: new `og.jpg` share image in the forest + copper look (current one is from the old design).
+
 ## 2026-11-03
 
 **Done**

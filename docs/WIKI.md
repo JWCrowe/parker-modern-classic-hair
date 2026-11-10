@@ -58,7 +58,8 @@
 - `src/pages/`: marketing (`index`, `book`), `admin/*`, `api/*`
 - `src/lib/`: db, auth, time (NY), availability, appointments, blocks, clients, crm, square, square-sync, catalog (Square menu + hours), open-status (browser safe open or closed text), google, email, http, env, oauth-state
 - `src/data/site.ts`: contact, reviews, gallery, fallback hours (no services or prices)
-- `src/styles/admin.css`: admin design system (same ink / brass / cream tokens as `global.css`)
+- `src/styles/global.css`: public design system (forest + copper + bone, see Design below)
+- `src/styles/admin.css`: admin design system. Keeps the original ink / brass / cream look; the legacy tokens (`--ink`, `--brass`, `--cream`, ...) are defined here, scoped to `.admin-body`, and the new public token names are mapped back to them so shared `.btn` / `.kicker` / `.serif-i` still match admin
 - `db/migrations/`: `000_init`, `001_blocks`, `002_square`, `003_square_catalog`; `scripts/seed.mjs` runs them + seeds admin
 - `vercel.json`: cron + docs-only `ignoreCommand` (`scripts/vercel-ignore.sh`, copied from PLP)
 - Setup detail (Square, Google, Resend, booking flow): root [README.md](../README.md)
@@ -71,3 +72,19 @@ jeffcrowecre, property-landing-pages (PLP), c21theavenues office site. New styli
 
 - `/privacy` and `/terms` (prerendered, `src/components/LegalPage.astro`); `/privacy-policy` and `/terms-of-service` redirect there. Linked in the footer and under the Book form submit.
 - If data handling changes (new analytics, new processor, SMS reminders), update `/privacy` and its Last updated date.
+
+## Design (public site, rebuilt 2026-11-09)
+
+Vibe: heritage gentleman's parlour on a dark, cinematic shop floor (Ben's references: Groomed Gentlemen's Parlour, Atlanta; Joshua Eche's shop in Dalton). Not black-and-gold, not oxblood-on-ivory. Do not drift back to brass.
+
+| Token | Hex | Use |
+|--|--|--|
+| `--forest-0` / `-1` / `-2` / `-3` | `#0e1612` / `#152019` / `#1c2a22` / `#24362c` | Page, section, and card surfaces |
+| `--copper` / `--copper-hi` / `--copper-lo` | `#c56a3a` / `#e08a58` / `#8f4a26` | Buttons, accents, prices (lo on parchment) |
+| `--bone` / `--bone-2` | `#f2eadc` / `#d9cfc0` | Type on forest |
+| `--paper` / `--paper-ink` | `#efe5d3` / `#1a241e` | Parchment cards (service menu, booking receipt, Ben plaque) |
+| `--moss` / `--moss-2` | `#8a9a88` / `#5f6f5f` | Secondary text |
+
+Type: **Cormorant Garamond** (headlines, `--head`, italic for accents, lining numerals) + **Outfit** (text and UI, `--sans`). Google Fonts, no npm dependency.
+
+Components: pill buttons with a round arrow chip (no notch), arch-framed hero photo with a rotating copper seal, parchment service menu (two columns, dotted leaders, links to `/book?service=id`), "Your Visit" 3-step band, horizontal scroll-snap gallery, plaque on Ben's portrait, copper-topped review cards, full-bleed shop-floor CTA band with hours/contact cards. Photos are Unsplash style references (`src/data/site.ts` `heroImage`, `floorImage`, `gallery`).

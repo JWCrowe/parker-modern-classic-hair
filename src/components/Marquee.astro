@@ -2,12 +2,13 @@
 interface Props { words?: string[]; dark?: boolean; reverse?: boolean }
 const { words = ['Fades', 'Beards', 'Classic Cuts', 'Calhoun'], dark = false, reverse = false } = Astro.props;
 const run = [...words, ...words, ...words];
+const mark = '<svg class="dot" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 0l2.2 7.8L20 10l-7.8 2.2L10 20l-2.2-7.8L0 10l7.8-2.2z"/></svg>';
 ---
-<div class:list={['marquee', { dark }]} aria-label={words.join(' · ')} role="img">
+<div class:list={['marquee', { dark }]} aria-label={words.join(', ')} role="img">
   <div class="marquee-track" style={reverse ? 'animation-direction: reverse' : ''} aria-hidden="true">
     {[0, 1].map(() => (
       <div class="marquee-item">
-        {run.map((w) => (<><span>{w}</span><span class="dot"></span></>))}
+        {run.map((w) => (<><span>{w}</span><Fragment set:html={mark} /></>))}
       </div>
     ))}
   </div>

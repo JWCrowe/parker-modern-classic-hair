@@ -4,10 +4,10 @@ const { home = false } = Astro.props;
 const p = home ? '' : '/';
 const links = [
   { href: `${p}#services`, label: 'Services' },
-  { href: `${p}#work`, label: 'Work' },
-  { href: `${p}#about`, label: 'Ben' },
+  { href: `${p}#work`, label: 'The Work' },
+  { href: `${p}#about`, label: 'Meet Ben' },
   { href: `${p}#reviews`, label: 'Reviews' },
-  { href: `${p}#visit`, label: 'Visit' },
+  { href: `${p}#visit`, label: 'Hours & Visit' },
 ];
 import { business } from '../data/site';
 ---
@@ -26,7 +26,7 @@ import { business } from '../data/site';
       <a href={business.phoneHref} class="header-phone">{business.phone}</a>
       <a href="/book" class="btn btn-sm">Book Now</a>
       <button class="burger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
-        <span></span><span></span>
+        <span></span><span></span><span></span>
       </button>
     </div>
   </div>
@@ -34,12 +34,12 @@ import { business } from '../data/site';
 
 <div class="mobile-nav" id="mobile-nav" aria-hidden="true">
   <div class="mobile-nav-inner">
-    <p class="kicker">Menu</p>
+    <p class="kicker">Parker · Calhoun, GA</p>
     <nav aria-label="Mobile">
       {links.map((l, i) => (
         <a href={l.href} style={`--i:${i}`}>
-          <span class="num">0{i + 1}</span>
           {l.label}
+          <span class="go" aria-hidden="true">→</span>
         </a>
       ))}
     </nav>
@@ -85,122 +85,128 @@ import { business } from '../data/site';
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(10, 9, 8, 0.85), rgba(10, 9, 8, 0));
+    background: linear-gradient(180deg, rgba(14, 22, 18, 0.9), rgba(14, 22, 18, 0));
     pointer-events: none;
     transition: opacity 0.4s;
   }
   .site-header.is-scrolled {
-    height: 64px;
-    background: rgba(10, 9, 8, 0.82);
+    height: 66px;
+    background: rgba(14, 22, 18, 0.86);
     backdrop-filter: blur(14px) saturate(1.2);
     -webkit-backdrop-filter: blur(14px) saturate(1.2);
-    border-color: var(--line);
+    border-color: var(--rule);
   }
   .site-header.is-scrolled::before { opacity: 0; }
   .header-inner { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
-  .brand img { height: 44px; width: auto; transition: height 0.4s var(--ease), opacity 0.3s; }
+  .brand img { height: 46px; width: auto; transition: height 0.4s var(--ease), opacity 0.3s; }
   .is-scrolled .brand img { height: 38px; }
   .brand:hover img { opacity: 0.85; }
 
-  .nav-desktop { display: flex; gap: 2.2rem; }
+  .nav-desktop {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.3rem;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: rgba(21, 32, 25, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
   .nav-desktop a {
-    position: relative;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.26em;
-    text-transform: uppercase;
-    color: var(--cream-2);
-    padding: 0.4rem 0;
-    transition: color 0.25s;
+    font-size: 0.86rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--bone-2);
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    transition: color 0.25s, background 0.25s;
   }
-  .nav-desktop a::after {
-    content: '';
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    height: 1px;
-    background: var(--brass);
-    transform: scaleX(0);
-    transform-origin: right;
-    transition: transform 0.4s var(--ease);
-  }
-  .nav-desktop a:hover { color: var(--cream); }
-  .nav-desktop a:hover::after { transform: scaleX(1); transform-origin: left; }
+  .nav-desktop a:hover { color: var(--bone); background: rgba(197, 106, 58, 0.18); }
 
-  .header-cta { display: flex; align-items: center; gap: 1.25rem; }
-  .header-phone { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; color: var(--cream-2); transition: color 0.2s; }
-  .header-phone:hover { color: var(--brass); }
+  .header-cta { display: flex; align-items: center; gap: 1.1rem; }
+  .header-phone { font-size: 0.86rem; font-weight: 500; letter-spacing: 0.04em; color: var(--bone-2); transition: color 0.2s; }
+  .header-phone:hover { color: var(--copper-hi); }
 
   .burger {
     display: none;
     position: relative;
-    width: 44px; height: 44px;
-    background: transparent;
-    border: 1px solid var(--line-2);
+    width: 46px; height: 46px;
+    background: var(--forest-2);
+    border: 1px solid var(--rule);
+    border-radius: 50%;
     cursor: pointer;
   }
   .burger span {
     position: absolute;
-    left: 11px; right: 11px;
+    left: 14px; right: 14px;
     height: 1.5px;
-    background: var(--cream);
-    transition: transform 0.4s var(--ease), top 0.4s var(--ease);
+    background: var(--bone);
+    transition: transform 0.4s var(--ease), top 0.4s var(--ease), opacity 0.3s;
   }
-  .burger span:first-child { top: 17px; }
-  .burger span:last-child { top: 25px; }
-  :global(.nav-open) .burger span:first-child { top: 21px; transform: rotate(45deg); }
-  :global(.nav-open) .burger span:last-child { top: 21px; transform: rotate(-45deg); }
+  .burger span:nth-child(1) { top: 16px; }
+  .burger span:nth-child(2) { top: 22px; right: 18px; background: var(--copper-hi); }
+  .burger span:nth-child(3) { top: 28px; }
+  :global(.nav-open) .burger span:nth-child(1) { top: 22px; transform: rotate(45deg); }
+  :global(.nav-open) .burger span:nth-child(2) { opacity: 0; }
+  :global(.nav-open) .burger span:nth-child(3) { top: 22px; transform: rotate(-45deg); }
 
   .mobile-nav {
     position: fixed;
     inset: 0;
     z-index: 55;
-    background: var(--ink);
-    background-image: radial-gradient(circle at 100% 0%, rgba(201, 162, 90, 0.12), transparent 50%);
-    clip-path: inset(0 0 100% 0);
-    transition: clip-path 0.6s var(--ease);
+    background: var(--forest-0);
+    background-image: radial-gradient(circle at 100% 0%, rgba(197, 106, 58, 0.18), transparent 55%), radial-gradient(circle at 0% 100%, rgba(36, 54, 44, 0.9), transparent 60%);
+    opacity: 0;
+    transform: translateY(-12px);
+    transition: opacity 0.4s var(--ease), transform 0.5s var(--ease), visibility 0.4s;
     visibility: hidden;
   }
-  :global(.nav-open) .mobile-nav { clip-path: inset(0 0 0 0); visibility: visible; }
+  :global(.nav-open) .mobile-nav { opacity: 1; transform: none; visibility: visible; }
   :global(.nav-open) { overflow: hidden; }
   .mobile-nav-inner {
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: calc(var(--header-h) + 2rem) var(--pad) calc(2rem + env(safe-area-inset-bottom));
+    padding: calc(var(--header-h) + 1.5rem) var(--pad) calc(2rem + env(safe-area-inset-bottom));
     overflow-y: auto;
   }
-  .mobile-nav nav { display: flex; flex-direction: column; margin: 1.5rem 0 auto; }
+  .mobile-nav nav { display: flex; flex-direction: column; margin: 1.25rem 0 auto; }
   .mobile-nav nav a {
     display: flex;
-    align-items: baseline;
+    align-items: center;
+    justify-content: space-between;
     gap: 1rem;
-    font-family: var(--display);
-    font-size: clamp(2.8rem, 13vw, 4.5rem);
-    line-height: 1.05;
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--line);
-    padding: 0.35rem 0;
+    font-family: var(--head);
+    font-weight: 600;
+    font-size: clamp(2.2rem, 10vw, 3.2rem);
+    line-height: 1.1;
+    border-bottom: 1px solid var(--rule);
+    padding: 0.55rem 0;
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(16px);
     transition: opacity 0.5s var(--ease), transform 0.5s var(--ease), color 0.2s;
-    transition-delay: calc(0.15s + var(--i) * 0.05s);
+    transition-delay: calc(0.1s + var(--i) * 0.05s);
   }
-  .mobile-nav nav a:active, .mobile-nav nav a:hover { color: var(--brass); }
-  .mobile-nav .num { font-family: var(--sans); font-size: 0.7rem; letter-spacing: 0.2em; color: var(--brass); }
+  .mobile-nav nav a:active, .mobile-nav nav a:hover { color: var(--copper-hi); }
+  .mobile-nav .go { font-family: var(--sans); font-size: 1.1rem; color: var(--copper-hi); }
   :global(.nav-open) .mobile-nav nav a { opacity: 1; transform: none; }
   .mobile-nav-foot { display: grid; gap: 0.75rem; margin-top: 2rem; }
   .mobile-nav-foot p { font-size: 0.85rem; text-align: center; margin-top: 0.5rem; }
 
-  @media (max-width: 1080px) {
+  @media (max-width: 1140px) {
     .header-phone { display: none; }
-    .nav-desktop { gap: 1.5rem; }
   }
-  @media (max-width: 880px) {
+  @media (max-width: 920px) {
     .nav-desktop { display: none; }
     .burger { display: block; }
-    .brand img { height: 38px; }
+    .brand img { height: 40px; }
   }
   @media (max-width: 420px) {
+    .header-cta { gap: 0.6rem; }
+    .header-cta .btn { min-height: 40px; padding: 0 0.95rem; font-size: 0.66rem; letter-spacing: 0.1em; }
+    .brand img { height: 34px; }
+  }
+  @media (max-width: 330px) {
     .header-cta .btn { display: none; }
   }
 </style>

@@ -4,6 +4,7 @@
 
 | Date | Commit | What | By | Notes |
 |------|--------|------|----|-------|
+| 2026-11-09 | `c4fa12d` | Public site rebuilt: forest + copper + bone palette, Cormorant Garamond + Outfit, new hero / menu / gallery / reviews / visit / header / footer / `/book` / legal styling, favicon; admin keeps old look via scoped tokens in `admin.css` | this chat | No Neon/env change. Pushed to `main` (push-triggered Vercel build). Square menu + hours wiring unchanged. |
 | 2026-11-03 | `1948ab8` | Privacy Policy `/privacy` + Terms of Service `/terms` (Parker look, Georgia law), footer links on all public pages, legal line on Book form, `/privacy-policy` + `/terms-of-service` 301 redirects | this chat | No Neon/env change. Push-triggered prod Ready; verified live 200s + footer links on `/` and `/book`. |
 | 2026-11-03 | `1d21483` | Square drives public menu + hours: `/` and `/book` on demand (CDN 60s) from Square-synced `services` + location business hours; hero Today status + Hours lists live; webhook `/api/square/webhook`; `site.ts` services removed | this chat | Neon schema v3 auto-applied (`003_square_catalog`, additive columns). Prod Ready, verified live (local mode until Ben connects Square). Webhook needs `SQUARE_WEBHOOK_SIGNATURE_KEY` (optional). |
 | 2026-11-03 | `8c4fad2` | Docs pack + empty admin card height fix (shell rows auto/auto, main align start, `.card-empty`) + docs-only ignoreCommand | this chat | No Neon/env change. Push-triggered prod build Ready (Mac `vercel --prod` returned Not authorized). New CSS verified in live bundle; `/api/health` ok. |
